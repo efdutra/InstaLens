@@ -164,6 +164,59 @@ export const useInstagramStore = defineStore('instagram', () => {
     }
   }
 
+  const exportToCSV = () => {
+    if (!profile.value) return
+
+    // Criar conteúdo CSV
+    let csvContent = ''
+
+    // Seção 1: Dados do Perfil
+    csvContent += '=== PERFIL ===\n'
+    csvContent += 'Campo,Valor\n'
+    csvContent += `Username,${profile.value.username}\n`
+    csvContent += `Nome,${profile.value.name}\n`
+    csvContent += `Bio,"${(profile.value.bio || '').replace(/"/g, '""')}"\n`
+    csvContent += `Posts,${profile.value.posts_count}\n`
+    csvContent += `Seguidores,${profile.value.followers_count}\n`
+    csvContent += `Seguindo,${profile.value.following_count}\n`
+    csvContent += `Foto,${profile.value.profile_pic}\n`
+    csvContent += '\n'
+
+    // Seção 2: Seguidores
+    if (followers.value.length > 0) {
+      csvContent += '=== SEGUIDORES ===\n'
+      csvContent += 'Username,Nome,URL\n'
+      followers.value.forEach(user => {
+        const name = (user.name || '').replace(/"/g, '""')
+        csvContent += `${user.username},"${name}",${user.profile_url}\n`
+      })
+      csvContent += '\n'
+    }
+
+    // Seção 3: Seguindo
+    if (following.value.length > 0) {
+      csvContent += '=== SEGUINDO ===\n'
+      csvContent += 'Username,Nome,URL\n'
+      following.value.forEach(user => {
+        const name = (user.name || '').replace(/"/g, '""')
+        csvContent += `${user.username},"${name}",${user.profile_url}\n`
+      })
+    }
+
+    // Criar blob e download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    
+    link.setAttribute('href', url)
+    link.setAttribute('download', `instagram_${profile.value.username}_${new Date().toISOString().split('T')[0]}.csv`)
+    link.style.visibility = 'hidden'
+    
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   return {
     // State
     profile,
@@ -181,5 +234,6 @@ export const useInstagramStore = defineStore('instagram', () => {
     clearData,
     clearError,
     clearBackendImages,
+    exportToCSV,
   }
 })

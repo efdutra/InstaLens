@@ -245,8 +245,11 @@ const handleReset = async () => {
 
       <!-- Reset Button -->
       <div class="reset-section">
+        <button @click="store.exportToCSV" class="btn btn-secondary btn-export">
+          📥 Exportar CSV
+        </button>
         <button @click="handleReset" class="btn btn-primary btn-reset">
-          Buscar Novamente
+          🔄 Buscar Novamente
         </button>
       </div>
     </div>
@@ -491,12 +494,32 @@ const handleReset = async () => {
 
 .reset-section {
   margin-top: 3rem;
-  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
-.btn-reset {
-  padding: 1rem 3rem;
+.btn-reset,
+.btn-export {
+  padding: 1rem 2.5rem;
   font-size: 1rem;
+  
+  @include mobile {
+    padding: 1rem 3rem;
+  }
+}
+
+.btn-export {
+  background: linear-gradient(135deg, rgba($color-primary, 0.8), rgba($color-accent, 0.8));
+  border: 1px solid rgba($color-primary, 0.3);
+  
+  &:hover {
+    background: linear-gradient(135deg, rgba($color-primary, 0.9), rgba($color-accent, 0.9));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba($color-primary, 0.3);
+  }
 }
 
 @keyframes fadeIn {

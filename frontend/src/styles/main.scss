@@ -61,6 +61,23 @@ h1, h2, h3, h4, h5, h6 {
       transform: scale(0.98);
     }
   }
+
+  &-secondary {
+    background: $color-card;
+    color: $color-text;
+    border: 1px solid $color-border;
+    
+    &:hover {
+      background: lighten($color-card, 3%);
+      border-color: $color-primary;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba($color-primary, 0.2);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
 }
 
 // Forms
