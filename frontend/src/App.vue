@@ -1,11 +1,29 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import HomePage from './components/HomePage.vue'
+</script>
 
 <template>
-  <h1>You did it!</h1>
-  <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
-  </p>
+  <div class="app">
+    <main class="main">
+      <div class="container">
+        <HomePage />
+      </div>
+    </main>
+  </div>
 </template>
 
-<style scoped></style>
+<style scoped lang="scss">
+@use './styles/variables' as *;
+
+.app {
+  min-height: 100vh;
+}
+
+.main {
+  padding: 2rem 0;
+
+  @include tablet {
+    padding: 3rem 0;
+  }
+}
+</style>

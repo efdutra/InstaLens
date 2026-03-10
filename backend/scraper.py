@@ -2,6 +2,8 @@ import asyncio
 import json
 import os
 import re
+import hashlib
+import httpx
 from pathlib import Path
 from playwright.async_api import async_playwright, Page, Browser
 from typing import Optional, Dict, List
@@ -12,25 +14,88 @@ class InstagramScraper:
         self.headless = headless
         self.browser: Optional[Browser] = None
         self.page: Optional[Page] = None
+        self.playwright = None
+        self.context = None
         self.session_file = Path("session.json")
+        self.images_dir = Path("images")
+        self.images_dir.mkdir(exist_ok=True)
         
-    async def start(self):
-        """Inicia o browser e carrega sessão se existir"""
-        playwright = await async_playwright().start()
-        self.browser = await playwright.chromium.launch(headless=self.headless)
+    async def _download_image(self, url: str) -> Optional[str]:
+        """Baixa imagem e salva localmente, retorna o caminho relativo"""
+        if not url:
+            return None
+            
+        try:
+            # Gerar hash único para a imagem
+            url_hash = hashlib.md5(url.encode()).hexdigest()
+            filename = f"{url_hash}.jpg"
+            filepath = self.images_dir / filename
+            
+            # Se já existe, retorna o caminho
+            if filepath.exists():
+                return f"/images/{filename}"
+            
+            # Baixar imagem
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(url)
+                if response.status_code == 200:
+                    filepath.write_bytes(response.content)
+                    return f"/images/{filename}"
+                else:
+                    print(f"❌ Erro ao baixar imagem: {response.status_code}")
+                    return None
+        except Exception as e:
+            print(f"❌ Erro ao baixar imagem: {e}")
+            return None
+    
+    def clear_images(self):
+        """Limpa todas as imagens salvas"""
+        try:
+            for file in self.images_dir.glob("*.jpg"):
+                file.unlink()
+            print("🗑️ Imagens limpas")
+        except Exception as e:
+            print(f"❌ Erro ao limpar imagens: {e}")
         
-        # Criar contexto do browser
+    async def _ensure_browser_started(self, headless: bool = False):
+        """Garante que o navegador está aberto (lazy loading)"""
+        if self.browser:
+            return  # Já está rodando
+        
+        if not self.playwright:
+            self.playwright = await async_playwright().start()
+        
+        mode = "invisível (headless)" if headless else "visível"
+        print(f"🌐 Abrindo navegador {mode}...")
+        
+        self.browser = await self.playwright.chromium.launch(headless=headless)
+        
+        # Criar contexto com ou sem sessão
         if self.session_file.exists():
-            # Carregar sessão salva (cookies)
             with open(self.session_file, 'r') as f:
                 storage_state = json.load(f)
-            context = await self.browser.new_context(storage_state=storage_state)
+            self.context = await self.browser.new_context(storage_state=storage_state)
         else:
-            context = await self.browser.new_context()
+            self.context = await self.browser.new_context()
         
-        self.page = await context.new_page()
+        self.page = await self.context.new_page()
         await self.page.goto("https://www.instagram.com/")
         await asyncio.sleep(3)
+    
+    async def start(self):
+        """Apenas inicializa (não abre navegador)"""
+        print("✅ InstagramScraper inicializado")
+        if self.session_file.exists():
+            print("🔒 Sessão encontrada - navegador abrirá em modo invisível quando necessário")
+        else:
+            print("👁️ Sem sessão salva - navegador abrirá visível para login")
+        
+    async def close(self):
+        """Fecha o browser"""
+        if self.browser:
+            await self.browser.close()
+        if self.playwright:
+            await self.playwright.stop()
         
     async def is_logged_in(self) -> bool:
         """Verifica se está logado"""
@@ -61,7 +126,10 @@ class InstagramScraper:
             return False
     
     async def wait_for_manual_login(self):
-        """Aguarda login manual do usuário"""
+        """Aguarda login manual do usuário - abre visível e FECHA após salvar"""
+        # Abrir navegador VISÍVEL para login
+        await self._ensure_browser_started(headless=False)
+        
         print("\n🔐 Por favor, faça login manualmente na janela do browser...")
         print("⏳ Aguardando login...")
         
@@ -80,18 +148,38 @@ class InstagramScraper:
         print("✅ Login detectado! Salvando sessão...")
         
         # Salvar cookies
-        storage_state = await self.page.context.storage_state()
+        storage_state = await self.context.storage_state()
         with open(self.session_file, 'w') as f:
             json.dump(storage_state, f)
         
         print(f"💾 Sessão salva em {self.session_file}")
+        
+        # FECHAR navegador completamente após login
+        print("🚪 Fechando navegador...")
+        await self.browser.close()
+        self.browser = None
+        self.context = None
+        self.page = None
+        print("✅ Login concluído - navegador fechado")
     
     async def get_profile_data(self, username: str) -> Dict:
         """Extrai dados do perfil"""
+        # Abrir navegador HEADLESS (invisível) para scraping
+        await self._ensure_browser_started(headless=True)
+        
         username = username.replace('@', '')
         
         await self.page.goto(f"https://www.instagram.com/{username}/")
         await asyncio.sleep(5)
+        
+        # Verificar se foi redirecionado para login (sessão inválida)
+        if '/accounts/login' in self.page.url:
+            print("⚠️ Sessão expirada! Deletando session.json...")
+            if self.session_file.exists():
+                self.session_file.unlink()
+            raise Exception(
+                "Sessão expirada. Por favor, faça login novamente usando /auth/wait-login"
+            )
         
         try:
             await self.page.wait_for_selector('header', timeout=10000)
@@ -137,7 +225,9 @@ class InstagramScraper:
                 if pic_elem:
                     src = await pic_elem.get_attribute('src')
                     if src and 'profile' in src:
-                        data["profile_pic"] = src
+                        # Baixar imagem localmente
+                        local_path = await self._download_image(src)
+                        data["profile_pic"] = local_path if local_path else src
                         break
             
             # Contadores - extrair do texto do header
@@ -296,6 +386,11 @@ class InstagramScraper:
                         name = await img.get_attribute('alt') or ""
                         # Limpar texto do alt
                         name = name.replace('Foto do perfil de', '').replace('Photo by', '').strip()
+                        
+                        # Baixar imagem localmente
+                        if profile_pic:
+                            local_path = await self._download_image(profile_pic)
+                            profile_pic = local_path if local_path else profile_pic
                     
                     if not name:
                         name = username
@@ -304,7 +399,7 @@ class InstagramScraper:
                         "username": username,
                         "name": name,
                         "profile_pic": profile_pic,
-                        "link": f"https://www.instagram.com/{username}/"
+                        "profile_url": f"https://www.instagram.com/{username}/"
                     })
                     
                     if len(users) >= max_users:
@@ -380,11 +475,6 @@ class InstagramScraper:
                 return 0
         return 0
     
-    async def close(self):
-        """Fecha o browser"""
-        if self.browser:
-            await self.browser.close()
-
 
 # Teste standalone
 async def main():

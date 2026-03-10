@@ -1,0 +1,41 @@
+// Variables - Paleta Azul Petróleo Dark
+$color-bg: #0a0e1a;
+$color-card: #1a2332;
+$color-border: #2d3748;
+
+$color-primary: #2dd4bf;
+$color-primary-light: #5eead4;
+$color-primary-dark: #14b8a6;
+
+$color-accent: #38bdf8;
+$color-accent-light: #7dd3fc;
+$color-accent-dark: #0ea5e9;
+
+$color-text: #e2e8f0;
+$color-text-muted: #94a3b8;
+$color-text-disabled: #64748b;
+
+// Breakpoints
+$mobile: 640px;
+$tablet: 768px;
+$desktop: 1024px;
+$wide: 1280px;
+
+// Mixins
+@mixin mobile {
+  @media (min-width: $mobile) {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @media (min-width: $tablet) {
+    @content;
+  }
+}
+
+@mixin desktop {
+  @media (min-width: $desktop) {
+    @content;
+  }
+}
