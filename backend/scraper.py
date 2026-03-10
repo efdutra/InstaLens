@@ -263,7 +263,7 @@ class InstagramScraper:
         
         return data
     
-    async def get_followers(self, username: str, max_followers: int = 100) -> List[Dict]:
+    async def get_followers(self, username: str, max_followers: int = 100, progress_callback=None) -> List[Dict]:
         """Extrai lista de seguidores"""
         username = username.replace('@', '')
         await self.page.goto(f"https://www.instagram.com/{username}/")
@@ -280,10 +280,10 @@ class InstagramScraper:
             print(f"❌ Erro ao abrir lista de seguidores: {e}")
             return []
         
-        followers = await self._scroll_and_extract_users(max_followers)
+        followers = await self._scroll_and_extract_users(max_followers, progress_callback)
         return followers
     
-    async def get_following(self, username: str, max_following: int = 100) -> List[Dict]:
+    async def get_following(self, username: str, max_following: int = 100, progress_callback=None) -> List[Dict]:
         """Extrai lista de seguindo"""
         username = username.replace('@', '')
         await self.page.goto(f"https://www.instagram.com/{username}/")
@@ -300,10 +300,10 @@ class InstagramScraper:
             print(f"❌ Erro ao abrir lista de seguindo: {e}")
             return []
         
-        following = await self._scroll_and_extract_users(max_following)
+        following = await self._scroll_and_extract_users(max_following, progress_callback)
         return following
     
-    async def _scroll_and_extract_users(self, max_users: int) -> List[Dict]:
+    async def _scroll_and_extract_users(self, max_users: int, progress_callback=None) -> List[Dict]:
         """Scroll infinito e extração de usuários"""
         users = []
         seen_usernames = set()
@@ -417,6 +417,9 @@ class InstagramScraper:
             else:
                 no_change_count = 0
                 print(f"   Carregados: {len(users)} usuários...")
+                # Callback de progresso
+                if progress_callback:
+                    await progress_callback(len(users))
                 previous_count = len(users)
             
             if len(users) >= max_users:

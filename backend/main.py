@@ -190,18 +190,58 @@ async def scrape_stream(
             yield f"event: progress\ndata: ✅ Perfil extraído\n\n"
             await asyncio.sleep(0.1)
             
-            # Extrair seguidores
+            # Extrair seguidores com progresso em tempo real
             if get_followers:
-                yield f"event: progress\ndata: 👥 Extraindo seguidores...\n\n"
-                followers = await scraper.get_followers(username, max_followers)
+                yield f"event: progress\ndata: 👥 Iniciando extração de seguidores...\n\n"
+                
+                # Usar abordagem com modificação direta da função
+                followers_count = [0]  # Lista para permitir modificação no callback
+                
+                async def followers_callback(count):
+                    followers_count[0] = count
+                
+                # Iniciar extração em background
+                followers_task = asyncio.create_task(
+                    scraper.get_followers(username, max_followers, followers_callback)
+                )
+                
+                # Enquanto extrai, enviar atualizações
+                last_count = 0
+                while not followers_task.done():
+                    await asyncio.sleep(1.5)
+                    current = followers_count[0]
+                    if current > last_count:
+                        yield f"event: progress\ndata: 👥 Extraindo seguidores... {current} extraídos\n\n"
+                        last_count = current
+                
+                # Pegar resultado
+                followers = await followers_task
                 profile_data['followers'] = followers
                 yield f"event: progress\ndata: ✅ {len(followers)} seguidores extraídos\n\n"
                 await asyncio.sleep(0.1)
             
-            # Extrair seguindo
+            # Extrair seguindo com progresso em tempo real
             if get_following:
-                yield f"event: progress\ndata: 👤 Extraindo seguindo...\n\n"
-                following = await scraper.get_following(username, max_following)
+                yield f"event: progress\ndata: 👤 Iniciando extração de seguindo...\n\n"
+                
+                following_count = [0]
+                
+                async def following_callback(count):
+                    following_count[0] = count
+                
+                following_task = asyncio.create_task(
+                    scraper.get_following(username, max_following, following_callback)
+                )
+                
+                last_count = 0
+                while not following_task.done():
+                    await asyncio.sleep(1.5)
+                    current = following_count[0]
+                    if current > last_count:
+                        yield f"event: progress\ndata: 👤 Extraindo seguindo... {current} extraídos\n\n"
+                        last_count = current
+                
+                following = await following_task
                 profile_data['following'] = following
                 yield f"event: progress\ndata: ✅ {len(following)} seguindo extraídos\n\n"
                 await asyncio.sleep(0.1)
@@ -211,7 +251,7 @@ async def scrape_stream(
             
         except Exception as e:
             error_msg = json.dumps({"detail": str(e)})
-            yield f"event: error\ndata: {error_msg}\n\n"
+            yield f"event: failure\ndata: {error_msg}\n\n"
     
     return StreamingResponse(
         event_generator(),

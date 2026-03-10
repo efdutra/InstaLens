@@ -76,6 +76,7 @@ export const useInstagramStore = defineStore('instagram', () => {
 
       // Criar EventSource para receber progresso em tempo real
       const eventSource = new EventSource(`${API_BASE_URL}/scrape-stream?${params}`)
+      let hasError = false  // Flag para evitar múltiplos erros
 
       eventSource.addEventListener('progress', (event) => {
         progressMessage.value = event.data
@@ -98,6 +99,8 @@ export const useInstagramStore = defineStore('instagram', () => {
           isLoading.value = false
           resolve({ profile: profile.value, followers: followers.value, following: following.value })
         } catch (err) {
+          if (hasError) return
+          hasError = true
           eventSource.close()
           isLoading.value = false
           const message = 'Erro ao processar dados recebidos'
@@ -106,26 +109,30 @@ export const useInstagramStore = defineStore('instagram', () => {
         }
       })
 
-      eventSource.addEventListener('error', (event: any) => {
+      // Evento customizado de erro do backend (não confundir com onerror de conexão)
+      eventSource.addEventListener('failure', (event: any) => {
+        if (hasError) return
+        hasError = true
         eventSource.close()
         isLoading.value = false
         
-        // Tentar extrair mensagem de erro
+        // Extrair mensagem de erro do backend
         let message = 'Erro ao extrair dados do perfil'
-        if (event.data) {
-          try {
-            const errorData = JSON.parse(event.data)
-            message = errorData.detail || message
-          } catch {
-            message = event.data
-          }
+        try {
+          const errorData = JSON.parse(event.data)
+          message = errorData.detail || message
+        } catch {
+          message = event.data || message
         }
         
         error.value = message
         reject(new Error(message))
       })
 
-      eventSource.onerror = () => {
+      // Erro de conexão real (não disparará se já teve erro customizado)
+      eventSource.onerror = (event) => {
+        if (hasError) return
+        hasError = true
         eventSource.close()
         isLoading.value = false
         const message = 'Conexão perdida com o servidor'
