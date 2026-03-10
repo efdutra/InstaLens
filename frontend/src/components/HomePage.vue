@@ -15,9 +15,32 @@ const getFollowers = ref(true)
 const getFollowing = ref(true)
 const activeTab = ref<'followers' | 'following'>('followers')
 const isLoggingIn = ref(false)
+const searchQuery = ref('')
 
 const hasResults = computed(() => store.profile !== null)
 const showForm = computed(() => !store.isLoading && !hasResults.value)
+
+// Filtrar seguidores baseado na busca
+const filteredFollowers = computed(() => {
+  if (!searchQuery.value.trim()) return store.followers
+  
+  const query = searchQuery.value.toLowerCase().trim()
+  return store.followers.filter(user => 
+    user.username.toLowerCase().includes(query) ||
+    (user.name && user.name.toLowerCase().includes(query))
+  )
+})
+
+// Filtrar seguindo baseado na busca
+const filteredFollowing = computed(() => {
+  if (!searchQuery.value.trim()) return store.following
+  
+  const query = searchQuery.value.toLowerCase().trim()
+  return store.following.filter(user => 
+    user.username.toLowerCase().includes(query) ||
+    (user.name && user.name.toLowerCase().includes(query))
+  )
+})
 
 onMounted(async () => {
   await store.checkAuthStatus()
@@ -81,6 +104,7 @@ const handleReset = async () => {
   getFollowers.value = true
   getFollowing.value = true
   activeTab.value = 'followers'
+  searchQuery.value = ''
 }
 </script>
 
@@ -207,6 +231,27 @@ const handleReset = async () => {
       <!-- Profile Card -->
       <ProfileCard v-if="store.profile" :profile="store.profile" />
 
+      <!-- Search Bar -->
+      <div v-if="store.followers.length > 0 || store.following.length > 0" class="search-section">
+        <div class="search-container">
+          <span class="search-icon">🔍</span>
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Buscar por username ou nome..."
+            class="search-input"
+          />
+          <button 
+            v-if="searchQuery" 
+            @click="searchQuery = ''"
+            class="search-clear"
+            title="Limpar busca"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
       <!-- Tabs -->
       <div v-if="store.followers.length > 0 || store.following.length > 0" class="tabs-section">
         <div class="tabs">
@@ -216,7 +261,10 @@ const handleReset = async () => {
             :class="{ active: activeTab === 'followers' }"
             @click="activeTab = 'followers'"
           >
-            Seguidores ({{ store.followers.length }})
+            Seguidores 
+            <span class="tab-count">
+              {{ searchQuery ? `${filteredFollowers.length}/` : '' }}{{ store.followers.length }}
+            </span>
           </button>
           <button
             v-if="store.following.length > 0"
@@ -224,31 +272,44 @@ const handleReset = async () => {
             :class="{ active: activeTab === 'following' }"
             @click="activeTab = 'following'"
           >
-            Seguindo ({{ store.following.length }})
+            Seguindo 
+            <span class="tab-count">
+              {{ searchQuery ? `${filteredFollowing.length}/` : '' }}{{ store.following.length }}
+            </span>
           </button>
         </div>
 
         <!-- User Lists -->
         <div class="tab-content card">
           <UserList
-            v-if="activeTab === 'followers' && store.followers.length > 0"
-            :users="store.followers"
+            v-if="activeTab === 'followers' && filteredFollowers.length > 0"
+            :users="filteredFollowers"
             title="Seguidores"
           />
           <UserList
-            v-if="activeTab === 'following' && store.following.length > 0"
-            :users="store.following"
+            v-if="activeTab === 'following' && filteredFollowing.length > 0"
+            :users="filteredFollowing"
             title="Seguindo"
           />
+          
+          <!-- Empty State quando filtro não encontra nada -->
+          <div 
+            v-if="(activeTab === 'followers' && filteredFollowers.length === 0 && store.followers.length > 0) ||
+                  (activeTab === 'following' && filteredFollowing.length === 0 && store.following.length > 0)"
+            class="empty-state"
+          >
+            <span class="empty-icon">🔍</span>
+            <p>Nenhum resultado encontrado para "{{ searchQuery }}"</p>
+          </div>
         </div>
       </div>
 
       <!-- Reset Button -->
       <div class="reset-section">
-        <button @click="store.exportToCSV" class="btn btn-secondary btn-export">
+        <button @click="store.exportToCSV" class="btn btn-secondary btn-action">
           📥 Exportar CSV
         </button>
-        <button @click="handleReset" class="btn btn-primary btn-reset">
+        <button @click="handleReset" class="btn btn-primary btn-action">
           🔄 Buscar Novamente
         </button>
       </div>
@@ -450,6 +511,69 @@ const handleReset = async () => {
   animation: fadeIn 0.3s ease-in;
 }
 
+.search-section {
+  margin-top: 2rem;
+}
+
+.search-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.search-icon {
+  position: absolute;
+  left: 1rem;
+  font-size: 1.125rem;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.875rem 1rem 0.875rem 3rem;
+  background: $color-card;
+  border: 2px solid $color-border;
+  border-radius: 2rem;
+  color: $color-text;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+
+  &::placeholder {
+    color: $color-text-disabled;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $color-primary;
+    box-shadow: 0 0 0 3px rgba($color-primary, 0.1);
+  }
+}
+
+.search-clear {
+  position: absolute;
+  right: 0.75rem;
+  background: rgba($color-text-disabled, 0.1);
+  border: none;
+  border-radius: 50%;
+  width: 1.75rem;
+  height: 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: $color-text-muted;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba($color-text-disabled, 0.2);
+    color: $color-text;
+  }
+}
+
 .tabs-section {
   margin-top: 2rem;
 }
@@ -484,6 +608,32 @@ const handleReset = async () => {
   }
 }
 
+.tab-count {
+  margin-left: 0.25rem;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: $color-text-muted;
+
+  .empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+  }
+
+  p {
+    font-size: 0.95rem;
+  }
+}
+
 .tab-content {
   border-radius: 0 0 1rem 1rem;
   
@@ -501,24 +651,12 @@ const handleReset = async () => {
   flex-wrap: wrap;
 }
 
-.btn-reset,
-.btn-export {
+.btn-action {
   padding: 1rem 2.5rem;
   font-size: 1rem;
   
   @include mobile {
     padding: 1rem 3rem;
-  }
-}
-
-.btn-export {
-  background: linear-gradient(135deg, rgba($color-primary, 0.8), rgba($color-accent, 0.8));
-  border: 1px solid rgba($color-primary, 0.3);
-  
-  &:hover {
-    background: linear-gradient(135deg, rgba($color-primary, 0.9), rgba($color-accent, 0.9));
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba($color-primary, 0.3);
   }
 }
 
