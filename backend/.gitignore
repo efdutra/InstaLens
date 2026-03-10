@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Environment
+.env
+
+# Session data
+session.json
+*.session
+cookies.json
+
+# Output files
+*_data.json
+
+# Playwright
+test-results/
+playwright-report/
