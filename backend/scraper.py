@@ -263,7 +263,7 @@ class InstagramScraper:
         
         return data
     
-    async def get_followers(self, username: str, max_followers: int = 100, progress_callback=None) -> List[Dict]:
+    async def get_followers(self, username: str, max_followers: Optional[int] = None, progress_callback=None) -> List[Dict]:
         """Extrai lista de seguidores"""
         username = username.replace('@', '')
         await self.page.goto(f"https://www.instagram.com/{username}/")
@@ -283,7 +283,7 @@ class InstagramScraper:
         followers = await self._scroll_and_extract_users(max_followers, progress_callback)
         return followers
     
-    async def get_following(self, username: str, max_following: int = 100, progress_callback=None) -> List[Dict]:
+    async def get_following(self, username: str, max_following: Optional[int] = None, progress_callback=None) -> List[Dict]:
         """Extrai lista de seguindo"""
         username = username.replace('@', '')
         await self.page.goto(f"https://www.instagram.com/{username}/")
@@ -303,7 +303,7 @@ class InstagramScraper:
         following = await self._scroll_and_extract_users(max_following, progress_callback)
         return following
     
-    async def _scroll_and_extract_users(self, max_users: int, progress_callback=None) -> List[Dict]:
+    async def _scroll_and_extract_users(self, max_users: Optional[int], progress_callback=None) -> List[Dict]:
         """Scroll infinito e extração de usuários"""
         users = []
         seen_usernames = set()
@@ -315,6 +315,13 @@ class InstagramScraper:
         if not modal:
             print("❌ Modal não encontrado")
             return []
+        
+        # Se max_users for None, definir um valor alto para "extrair todos"
+        if max_users is None:
+            max_users = 999999
+            print("📊 Modo 'extrair todos' ativado (sem limite)")
+        else:
+            print(f"📊 Limite máximo: {max_users} usuários")
         
         print(f"📜 Iniciando scroll para carregar usuários...")
         

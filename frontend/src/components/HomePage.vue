@@ -112,7 +112,7 @@ const handleReset = async () => {
   <div class="homepage">
     <!-- Hero Section + Form - Só mostra quando não está carregando e não tem resultados -->
     <template v-if="showForm">
-      <div class="hero">
+      <div class="hero" v-if="false">
         <h2 class="hero__title">Instagram Crawler</h2>
         <p class="hero__subtitle">
           Extraia dados de perfis do Instagram de forma automatizada
