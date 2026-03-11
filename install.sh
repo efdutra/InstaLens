@@ -326,7 +326,7 @@ EOF
     FRONTEND_PID=$!
     
     # Wait for Vite to fully start and show its banner
-    sleep 20
+    sleep 60
     
     # Now show all information together
     echo ""
