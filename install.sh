@@ -38,26 +38,11 @@ print_header() {
     echo -e "${CYAN}${BOLD}"
     echo "╔════════════════════════════════════════╗"
     echo "║                                        ║"
-    echo "║   📸 InstaLens Installer V1.1          ║"
+    echo "║   📸 InstaLens Installer               ║"
     echo "║   Instagram Followers Scraper          ║"
     echo "║                                        ║"
     echo "╚════════════════════════════════════════╝"
     echo -e "${NC}"
-}
-
-print_header_running() {
-    echo ""
-    echo -e "${CYAN}${BOLD}"
-    echo "╔════════════════════════════════════════╗"
-    echo "║                                        ║"
-    echo "║   📸 InstaLens Installer V1.1          ║"
-    echo "║   Instagram Followers Scraper          ║"
-    echo "║                                        ║"
-    echo "╚════════════════════════════════════════╝"
-    echo -e "${NC}"
-    echo ""
-    print_success "${ROCKET} InstaLens running!"
-    echo ""
 }
 
 print_step() {
@@ -332,34 +317,19 @@ EOF
     
     sleep 5
     
-    # Start frontend and monitor for Vite ready message
+    # Start frontend in background (will show Vite output)
     cd "$INSTALL_DIR/frontend"
     print_info "Starting frontend..."
     echo ""
     
-    # Create temp log file
-    VITE_LOG="/tmp/instalens-vite-$$.log"
-    touch "$VITE_LOG"
-    
-    # Start pnpm dev redirecting to log
-    pnpm dev > "$VITE_LOG" 2>&1 &
+    pnpm dev &
     FRONTEND_PID=$!
     
-    # Show Vite output in real-time
-    tail -f "$VITE_LOG" &
-    TAIL_PID=$!
+    # Wait for Vite to fully start and show its banner
+    sleep 60
     
-    # Monitor log for "ready in" message
-    while ! grep -q "ready in" "$VITE_LOG" 2>/dev/null; do
-        sleep 0.5
-    done
-    
-    # Kill tail and clean screen
-    kill $TAIL_PID 2>/dev/null
-    wait $TAIL_PID 2>/dev/null
-    
-    # Show final status
-    print_header_running
+    # Now show all information together
+    echo ""
     print_success "Backend started (PID: $BACKEND_PID)"
     print_info "Backend running on: ${BOLD}http://localhost:8000${NC}"
     print_success "Frontend started (PID: $FRONTEND_PID)"
@@ -373,7 +343,6 @@ EOF
     
     # Cleanup on exit
     kill $BACKEND_PID 2>/dev/null
-    rm -f "$VITE_LOG"
 }
 
 # ==============================================
