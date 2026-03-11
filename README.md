@@ -102,6 +102,7 @@ iex (iwr -useb https://raw.githubusercontent.com/efdutra/InstaLens/main/install.
 ```
 
 The installer will:
+
 - ✅ Check for dependencies (Git, Python 3.9+, Node 18+, pnpm)
 - ✅ Clone the repository to your chosen location
 - ✅ Install all backend and frontend dependencies
