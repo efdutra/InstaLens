@@ -317,18 +317,36 @@ EOF
     
     sleep 5
     
-    # Start frontend in background (will show Vite output)
+    # Start frontend in background and capture output
     cd "$INSTALL_DIR/frontend"
     print_info "Starting frontend..."
     echo ""
     
-    pnpm dev &
+    # Redirect pnpm output to both terminal and log file
+    VITE_LOG="/tmp/vite-install-$$.log"
+    pnpm dev 2>&1 | tee "$VITE_LOG" &
     FRONTEND_PID=$!
     
-    # Wait for Vite to fully start and show its banner
-    sleep 60
+    # Wait for Vite to be ready by monitoring the log
+    print_info "Waiting for Vite to start..."
+    while ! grep -q "ready in" "$VITE_LOG" 2>/dev/null; do
+        sleep 0.5
+    done
+    
+    # Small delay to ensure full banner is displayed
+    sleep 1
     
     # Now show all information together
+    echo ""
+    echo ""
+    echo -e "${CYAN}╔════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║                                        ║${NC}"
+    echo -e "${CYAN}║   📸 InstaLens Installer               ║${NC}"
+    echo -e "${CYAN}║   Instagram Followers Scraper          ║${NC}"
+    echo -e "${CYAN}║                                        ║${NC}"
+    echo -e "${CYAN}╚════════════════════════════════════════╝${NC}"
+    echo ""
+    print_success "${ROCKET} InstaLens running!"
     echo ""
     print_success "Backend started (PID: $BACKEND_PID)"
     print_info "Backend running on: ${BOLD}http://localhost:8000${NC}"
@@ -338,11 +356,13 @@ EOF
     print_warning "Press Ctrl+C to stop both servers"
     echo ""
     
-    # Wait for frontend (bring to foreground)
+    # Cleanup log file and wait for frontend
+    trap "kill $BACKEND_PID 2>/dev/null; rm -f $VITE_LOG" EXIT
     wait $FRONTEND_PID
     
     # Cleanup on exit
     kill $BACKEND_PID 2>/dev/null
+    rm -f "$VITE_LOG"
 }
 
 # ==============================================

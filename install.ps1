@@ -304,13 +304,39 @@ CORS_ORIGINS=*
         pnpm dev
     } -ArgumentList (Join-Path $InstallDir "frontend")
     
-    # Wait for Vite to fully start and show its banner
-    Start-Sleep -Seconds 20
+    # Wait for Vite to be ready by checking the port
+    Print-Info "Waiting for Vite to start..."
     
-    # Show frontend output
-    Receive-Job $FrontendJob
+    # Show frontend output while waiting
+    $ViteReady = $false
+    while (-not $ViteReady) {
+        Start-Sleep -Milliseconds 500
+        Receive-Job $FrontendJob
+        
+        try {
+            $response = Invoke-WebRequest -Uri "http://localhost:5173" -Method Head -TimeoutSec 1 -ErrorAction SilentlyContinue
+            if ($response.StatusCode -eq 200) {
+                $ViteReady = $true
+            }
+        } catch {
+            # Still waiting...
+        }
+    }
+    
+    # Small delay to ensure full banner is displayed
+    Start-Sleep -Seconds 1
     
     # Now show all information together
+    Write-Host ""
+    Write-Host ""
+    Write-Host "╔════════════════════════════════════════╗" -ForegroundColor Cyan
+    Write-Host "║                                        ║" -ForegroundColor Cyan
+    Write-Host "║   📸 InstaLens Installer               ║" -ForegroundColor Cyan
+    Write-Host "║   Instagram Followers Scraper          ║" -ForegroundColor Cyan
+    Write-Host "║                                        ║" -ForegroundColor Cyan
+    Write-Host "╚════════════════════════════════════════╝" -ForegroundColor Cyan
+    Write-Host ""
+    Print-Success "🚀 InstaLens running!"
     Write-Host ""
     Print-Success "Backend started (Job ID: $($BackendJob.Id))"
     Print-Info "Backend running on: " -NoNewline
