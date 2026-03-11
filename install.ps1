@@ -26,7 +26,7 @@ function Print-Header {
 }
 
 function Print-Header-Running {
-    Clear-Host
+    Write-Host ""
     Write-Host ""
     Write-Host "╔════════════════════════════════════════╗" -ForegroundColor Cyan
     Write-Host "║                                        ║" -ForegroundColor Cyan

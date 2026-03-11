@@ -46,7 +46,7 @@ print_header() {
 }
 
 print_header_running() {
-    clear
+    echo ""
     echo -e "${CYAN}${BOLD}"
     echo "╔════════════════════════════════════════╗"
     echo "║                                        ║"
