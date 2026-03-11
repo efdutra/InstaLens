@@ -3,6 +3,7 @@ export interface ProfileData {
   name: string
   bio?: string
   profile_pic: string
+  profile_pic_url?: string
   posts_count: number
   followers_count: number
   following_count: number
@@ -13,6 +14,8 @@ export interface User {
   name?: string
   profile_url: string
   profile_pic: string
+  profile_pic_url?: string
+  gender?: string
 }
 
 export interface ScrapeRequest {

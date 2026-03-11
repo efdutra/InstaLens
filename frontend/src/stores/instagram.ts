@@ -180,15 +180,21 @@ export const useInstagramStore = defineStore('instagram', () => {
     csvContent += `Seguidores,${profile.value.followers_count}\n`
     csvContent += `Seguindo,${profile.value.following_count}\n`
     csvContent += `Foto,${profile.value.profile_pic}\n`
+    if (profile.value.profile_pic_url) {
+      csvContent += `Foto Original,${profile.value.profile_pic_url}\n`
+    }
     csvContent += '\n'
 
     // Seção 2: Seguidores
     if (followers.value.length > 0) {
       csvContent += '=== SEGUIDORES ===\n'
-      csvContent += 'Username,Nome,URL\n'
+      csvContent += 'Username,Nome,URL,Foto Original,Gênero\n'
       followers.value.forEach(user => {
         const name = (user.name || '').replace(/"/g, '""')
-        csvContent += `${user.username},"${name}",${user.profile_url}\n`
+        const photoUrl = user.profile_pic_url || ''
+        const gender = user.gender || 'I'
+        const genderLabel = gender === 'M' ? 'Masculino' : gender === 'F' ? 'Feminino' : 'Indeterminado'
+        csvContent += `${user.username},"${name}",${user.profile_url},${photoUrl},${genderLabel}\n`
       })
       csvContent += '\n'
     }
@@ -196,10 +202,13 @@ export const useInstagramStore = defineStore('instagram', () => {
     // Seção 3: Seguindo
     if (following.value.length > 0) {
       csvContent += '=== SEGUINDO ===\n'
-      csvContent += 'Username,Nome,URL\n'
+      csvContent += 'Username,Nome,URL,Foto Original,Gênero\n'
       following.value.forEach(user => {
         const name = (user.name || '').replace(/"/g, '""')
-        csvContent += `${user.username},"${name}",${user.profile_url}\n`
+        const photoUrl = user.profile_pic_url || ''
+        const gender = user.gender || 'I'
+        const genderLabel = gender === 'M' ? 'Masculino' : gender === 'F' ? 'Feminino' : 'Indeterminado'
+        csvContent += `${user.username},"${name}",${user.profile_url},${photoUrl},${genderLabel}\n`
       })
     }
 
@@ -210,6 +219,46 @@ export const useInstagramStore = defineStore('instagram', () => {
     
     link.setAttribute('href', url)
     link.setAttribute('download', `instagram_${profile.value.username}_${new Date().toISOString().split('T')[0]}.csv`)
+    link.style.visibility = 'hidden'
+    
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const exportToJSON = () => {
+    if (!profile.value) return
+
+    // Criar objeto JSON
+    const data = {
+      scraped_at: new Date().toISOString(),
+      profile: profile.value,
+      followers: followers.value,
+      following: following.value,
+      stats: {
+        total_followers: followers.value.length,
+        total_following: following.value.length,
+        gender_breakdown_followers: {
+          male: followers.value.filter(u => u.gender === 'M').length,
+          female: followers.value.filter(u => u.gender === 'F').length,
+          undetermined: followers.value.filter(u => !u.gender || u.gender === 'I').length
+        },
+        gender_breakdown_following: {
+          male: following.value.filter(u => u.gender === 'M').length,
+          female: following.value.filter(u => u.gender === 'F').length,
+          undetermined: following.value.filter(u => !u.gender || u.gender === 'I').length
+        }
+      }
+    }
+
+    // Criar blob e download
+    const jsonString = JSON.stringify(data, null, 2)
+    const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    
+    link.setAttribute('href', url)
+    link.setAttribute('download', `instagram_${profile.value.username}_${new Date().toISOString().split('T')[0]}.json`)
     link.style.visibility = 'hidden'
     
     document.body.appendChild(link)
@@ -235,5 +284,6 @@ export const useInstagramStore = defineStore('instagram', () => {
     clearError,
     clearBackendImages,
     exportToCSV,
+    exportToJSON,
   }
 })

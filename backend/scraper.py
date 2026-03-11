@@ -6,7 +6,7 @@ import hashlib
 import httpx
 from pathlib import Path
 from playwright.async_api import async_playwright, Page, Browser
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Tuple
 
 
 class InstagramScraper:
@@ -20,8 +20,73 @@ class InstagramScraper:
         self.images_dir = Path("images")
         self.images_dir.mkdir(exist_ok=True)
         
-    async def _download_image(self, url: str) -> Optional[str]:
-        """Baixa imagem e salva localmente, retorna o caminho relativo"""
+        # Carregar caches de nomes para classificação de gênero
+        self.names_male = {}
+        self.names_female = {}
+        self._load_names_cache()
+        
+        # Carregar caches de nomes para classificação de gênero
+        self.names_male = {}
+        self.names_female = {}
+        self._load_names_cache()
+    
+    def _load_names_cache(self):
+        """Carrega caches de nomes do IBGE"""
+        try:
+            male_file = Path("names_cache_male.json")
+            female_file = Path("names_cache_female.json")
+            
+            if male_file.exists():
+                with open(male_file, 'r', encoding='utf-8') as f:
+                    self.names_male = json.load(f)
+                print(f"✅ {len(self.names_male)} nomes masculinos carregados")
+            else:
+                print("⚠️ Cache de nomes masculinos não encontrado")
+            
+            if female_file.exists():
+                with open(female_file, 'r', encoding='utf-8') as f:
+                    self.names_female = json.load(f)
+                print(f"✅ {len(self.names_female)} nomes femininos carregados")
+            else:
+                print("⚠️ Cache de nomes femininos não encontrado")
+        except Exception as e:
+            print(f"❌ Erro ao carregar caches de nomes: {e}")
+    
+    def classify_gender(self, full_name: str) -> str:
+        """Classifica o gênero baseado no primeiro nome
+        
+        Args:
+            full_name: Nome completo do usuário
+            
+        Returns:
+            'M' para masculino, 'F' para feminino, 'I' para indeterminado
+        """
+        if not full_name:
+            return 'I'
+        
+        # Pegar primeiro nome e normalizar
+        first_name = full_name.split()[0].lower().strip()
+        
+        # Verificar nome completo nos caches
+        if first_name in self.names_male:
+            return 'M'
+        elif first_name in self.names_female:
+            return 'F'
+        
+        # Se não encontrou, tentar prefixos (para casos como "caiomini" -> "caio")
+        # Testar prefixos de 4 a 8 caracteres
+        if len(first_name) > 4:
+            for length in range(min(8, len(first_name)), 3, -1):
+                prefix = first_name[:length]
+                if prefix in self.names_male:
+                    return 'M'
+                elif prefix in self.names_female:
+                    return 'F'
+        
+        return 'I'
+        
+    async def _download_image(self, url: str) -> Tuple[Optional[str], Optional[str]]:
+        """Baixa imagem e salva localmente, retorna (caminho_local, url_original)"""
         if not url:
             return None
             
@@ -33,20 +98,20 @@ class InstagramScraper:
             
             # Se já existe, retorna o caminho
             if filepath.exists():
-                return f"/images/{filename}"
+                return (f"/images/{filename}", url)
             
             # Baixar imagem
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.get(url)
                 if response.status_code == 200:
                     filepath.write_bytes(response.content)
-                    return f"/images/{filename}"
+                    return (f"/images/{filename}", url)
                 else:
                     print(f"❌ Erro ao baixar imagem: {response.status_code}")
-                    return None
+                    return (None, url)
         except Exception as e:
             print(f"❌ Erro ao baixar imagem: {e}")
-            return None
+            return (None, url)
     
     def clear_images(self):
         """Limpa todas as imagens salvas"""
@@ -226,8 +291,9 @@ class InstagramScraper:
                     src = await pic_elem.get_attribute('src')
                     if src and 'profile' in src:
                         # Baixar imagem localmente
-                        local_path = await self._download_image(src)
+                        local_path, original_url = await self._download_image(src)
                         data["profile_pic"] = local_path if local_path else src
+                        data["profile_pic_url"] = original_url
                         break
             
             # Contadores - extrair do texto do header
@@ -389,24 +455,47 @@ class InstagramScraper:
                     name = ""
                     
                     if img:
-                        profile_pic = await img.get_attribute('src') or ""
+                        profile_pic_url = await img.get_attribute('src') or ""
                         name = await img.get_attribute('alt') or ""
-                        # Limpar texto do alt
-                        name = name.replace('Foto do perfil de', '').replace('Photo by', '').strip()
+                        
+                        # Limpar texto do alt (português e inglês)
+                        name = name.replace('Foto do perfil de', '').strip()
+                        name = name.replace('Photo by', '').strip()
+                        name = name.replace("'s profile picture", '').strip()
+                        name = name.replace('profile picture', '').strip()
+                        
+                        # Se o nome resultante for vazio ou muito curto, usar username
+                        if not name or len(name) < 2:
+                            name = username
+                        
+                        # Se o nome ainda parece ser um username (tem _, números), tentar extrair nome
+                        if '_' in name or any(char.isdigit() for char in name):
+                            # Tentar pegar a primeira parte antes de números/underscores
+                            parts = re.split(r'[_\d]', name)
+                            first_part = parts[0] if parts and len(parts[0]) > 1 else name
+                            if len(first_part) > 1:
+                                name = first_part
                         
                         # Baixar imagem localmente
-                        if profile_pic:
-                            local_path = await self._download_image(profile_pic)
-                            profile_pic = local_path if local_path else profile_pic
+                        profile_pic = profile_pic_url
+                        if profile_pic_url:
+                            local_path, original_url = await self._download_image(profile_pic_url)
+                            profile_pic = local_path if local_path else profile_pic_url
+                            profile_pic_url = original_url
                     
                     if not name:
                         name = username
+                    
+                    # Classificar gênero
+                    gender = self.classify_gender(name)
                     
                     users.append({
                         "username": username,
                         "name": name,
                         "profile_pic": profile_pic,
-                        "profile_url": f"https://www.instagram.com/{username}/"
+                        "profile_pic_url": profile_pic_url,
+                        "profile_url": f"https://www.instagram.com/{username}/",
+                        "gender": gender
                     })
                     
                     if len(users) >= max_users:

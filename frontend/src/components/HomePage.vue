@@ -9,37 +9,75 @@ import UserList from './UserList.vue'
 const store = useInstagramStore()
 
 const username = ref('')
-const maxFollowers = ref<number | null>(50)
-const maxFollowing = ref<number | null>(50)
+const maxFollowers = ref<number | null>(10)
+const maxFollowing = ref<number | null>(10)
 const getFollowers = ref(true)
 const getFollowing = ref(true)
 const activeTab = ref<'followers' | 'following'>('followers')
 const isLoggingIn = ref(false)
 const searchQuery = ref('')
+const genderFilters = ref<string[]>([])
 
 const hasResults = computed(() => store.profile !== null)
 const showForm = computed(() => !store.isLoading && !hasResults.value)
 
-// Filtrar seguidores baseado na busca
-const filteredFollowers = computed(() => {
-  if (!searchQuery.value.trim()) return store.followers
-  
-  const query = searchQuery.value.toLowerCase().trim()
-  return store.followers.filter(user => 
-    user.username.toLowerCase().includes(query) ||
-    (user.name && user.name.toLowerCase().includes(query))
-  )
+// Contar usuários por gênero
+const genderCounts = computed(() => {
+  const counts = { M: 0, F: 0, I: 0 }
+  const users = activeTab.value === 'followers' ? store.followers : store.following
+  users.forEach(user => {
+    const gender = user.gender || 'I'
+    counts[gender as keyof typeof counts]++
+  })
+  return counts
 })
 
-// Filtrar seguindo baseado na busca
-const filteredFollowing = computed(() => {
-  if (!searchQuery.value.trim()) return store.following
+// Filtrar seguidores baseado na busca e gênero
+const filteredFollowers = computed(() => {
+  let filtered = store.followers
   
-  const query = searchQuery.value.toLowerCase().trim()
-  return store.following.filter(user => 
-    user.username.toLowerCase().includes(query) ||
-    (user.name && user.name.toLowerCase().includes(query))
-  )
+  // Filtro de busca
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase().trim()
+    filtered = filtered.filter(user => 
+      user.username.toLowerCase().includes(query) ||
+      (user.name && user.name.toLowerCase().includes(query))
+    )
+  }
+  
+  // Filtro de gênero
+  if (genderFilters.value.length > 0) {
+    filtered = filtered.filter(user => {
+      const gender = user.gender || 'I'
+      return genderFilters.value.includes(gender)
+    })
+  }
+  
+  return filtered
+})
+
+// Filtrar seguindo baseado na busca e gênero
+const filteredFollowing = computed(() => {
+  let filtered = store.following
+  
+  // Filtro de busca
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase().trim()
+    filtered = filtered.filter(user => 
+      user.username.toLowerCase().includes(query) ||
+      (user.name && user.name.toLowerCase().includes(query))
+    )
+  }
+  
+  // Filtro de gênero
+  if (genderFilters.value.length > 0) {
+    filtered = filtered.filter(user => {
+      const gender = user.gender || 'I'
+      return genderFilters.value.includes(gender)
+    })
+  }
+  
+  return filtered
 })
 
 onMounted(async () => {
@@ -99,12 +137,13 @@ const handleReset = async () => {
   
   // Resetar formulário
   username.value = ''
-  maxFollowers.value = 50
-  maxFollowing.value = 50
+  maxFollowers.value = 10
+  maxFollowing.value = 10
   getFollowers.value = true
   getFollowing.value = true
   activeTab.value = 'followers'
   searchQuery.value = ''
+  genderFilters.value = []
 }
 </script>
 
@@ -250,6 +289,32 @@ const handleReset = async () => {
             ✕
           </button>
         </div>
+        
+        <!-- Gender Filter -->
+        <div class="gender-filter">
+          <label class="filter-title">👥 Filtrar por gênero:</label>
+          <div class="filter-checkboxes">
+            <label class="checkbox-label">
+              <input type="checkbox" value="M" v-model="genderFilters" />
+              <span>♂️ Masculino ({{ genderCounts.M }})</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" value="F" v-model="genderFilters" />
+              <span>♀️ Feminino ({{ genderCounts.F }})</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" value="I" v-model="genderFilters" />
+              <span>❓ Indeterminado ({{ genderCounts.I }})</span>
+            </label>
+          </div>
+          <button 
+            v-if="genderFilters.length > 0" 
+            @click="genderFilters = []"
+            class="btn btn-secondary btn-small"
+          >
+            🗑️ Limpar Filtros
+          </button>
+        </div>
       </div>
 
       <!-- Tabs -->
@@ -304,10 +369,13 @@ const handleReset = async () => {
         </div>
       </div>
 
-      <!-- Reset Button -->
+      <!-- Export & Reset Buttons -->
       <div class="reset-section">
         <button @click="store.exportToCSV" class="btn btn-secondary btn-action">
           📥 Exportar CSV
+        </button>
+        <button @click="store.exportToJSON" class="btn btn-secondary btn-action">
+          📄 Exportar JSON
         </button>
         <button @click="handleReset" class="btn btn-primary btn-action">
           🔄 Buscar Novamente
@@ -571,6 +639,54 @@ const handleReset = async () => {
   &:hover {
     background: rgba($color-text-disabled, 0.2);
     color: $color-text;
+  }
+}
+
+.gender-filter {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  background: $color-card;
+  border-radius: 1rem;
+  border: 1px solid $color-border;
+
+  .filter-title {
+    display: block;
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+    color: $color-text;
+  }
+
+  .filter-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: $color-text-muted;
+    transition: color 0.2s;
+
+    &:hover {
+      color: $color-text;
+    }
+
+    input[type="checkbox"] {
+      cursor: pointer;
+      width: 1rem;
+      height: 1rem;
+    }
+  }
+
+  .btn-small {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
   }
 }
 
