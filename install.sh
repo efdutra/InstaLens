@@ -68,7 +68,7 @@ print_info() {
 ask_yes_no() {
     while true; do
         echo -e -n "${YELLOW}$1 (y/n): ${NC}"
-        read -r response
+        read -r response < /dev/tty
         case "$response" in
             [yY]|[yY][eE][sS]) return 0 ;;
             [nN]|[nN][oO]) return 1 ;;
@@ -147,7 +147,7 @@ ask_install_location() {
     else
         echo ""
         echo -e -n "${CYAN}Enter installation path (or press Enter for $HOME/InstaLens): ${NC}"
-        read -r custom_path
+        read -r custom_path < /dev/tty
         
         if [ -z "$custom_path" ]; then
             INSTALL_DIR="$HOME/InstaLens"
