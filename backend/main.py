@@ -44,10 +44,13 @@ images_dir = Path("images")
 images_dir.mkdir(exist_ok=True)
 app.mount("/images", StaticFiles(directory="images"), name="images")
 
-# CORS for Vue.js
+# CORS configuration
+# Reads from CORS_ORIGINS env variable (comma-separated)
+# Example: CORS_ORIGINS=http://localhost:5173,http://192.168.1.10:5173
+cors_origins = os.getenv("CORS_ORIGINS", "*").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # URL do Vue dev server
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

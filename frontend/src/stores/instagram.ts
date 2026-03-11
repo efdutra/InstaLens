@@ -2,7 +2,8 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { ProfileData, User, ScrapeRequest, ScrapeResponse, ApiError } from '../types/instagram'
 
-const API_BASE_URL = 'http://localhost:8000'
+// Automatically use the same host as the frontend
+const API_BASE_URL = `http://${window.location.hostname}:8000`
 
 export const useInstagramStore = defineStore('instagram', () => {
   // State

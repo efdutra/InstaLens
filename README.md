@@ -124,6 +124,29 @@ Frontend runs on `http://localhost:5173`
 4. After login detected → browser closes → session saved
 5. Enter a username and start scraping
 
+### Mobile/Network Access
+
+To access from your phone or other devices on the same network:
+
+1. **Find your PC's IP address:**
+
+   ```bash
+   # Windows
+   ipconfig | Select-String "IPv4"
+   # Linux/Mac
+   ifconfig | grep "inet "
+   ```
+
+2. **Access from mobile:** `http://YOUR_PC_IP:5173`
+   - Example: `http://192.168.1.10:5173`
+
+3. **Configure CORS** (if needed):
+   - Edit `backend/.env`
+   - Set `CORS_ORIGINS=*` for all devices (development only)
+   - Or whitelist specific IPs: `CORS_ORIGINS=http://localhost:5173,http://192.168.1.10:5173`
+
+**Note:** The backend automatically detects which IP you're using and connects accordingly.
+
 ---
 
 ## 📡 API Overview
@@ -190,9 +213,10 @@ InstaLens/
 
 - ✅ Session saved **locally** in `session.json` (not sent to frontend)
 - ✅ Images downloaded locally (avoids exposing Instagram URLs)
-- ✅ CORS configured for `localhost:5173` (adjust for production)
+- ✅ CORS configured via `.env` (default allows all origins for development)
 - ⚠️ **DO NOT** commit `session.json` to git
 - ⚠️ **DO NOT** commit `.env` to git
+- ⚠️ Restrict `CORS_ORIGINS` in production to specific domains only
 - ⚠️ Use HTTPS in production
 
 ---
