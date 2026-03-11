@@ -13,7 +13,7 @@ export const useInstagramStore = defineStore('instagram', () => {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
   const isLoggedIn = ref(false)
-  const progressMessage = ref<string>('Iniciando...')
+  const progressMessage = ref<string>('Starting...')
 
   // Actions
   const checkAuthStatus = async () => {
@@ -23,7 +23,7 @@ export const useInstagramStore = defineStore('instagram', () => {
       isLoggedIn.value = data.logged_in
       return data.logged_in
     } catch (err) {
-      console.error('Erro ao verificar status de autenticação:', err)
+      console.error('Error checking authentication status:', err)
       isLoggedIn.value = false
       return false
     }
@@ -31,7 +31,7 @@ export const useInstagramStore = defineStore('instagram', () => {
 
   const waitForLogin = async () => {
     isLoading.value = true
-    progressMessage.value = 'Aguardando login no navegador...'
+    progressMessage.value = 'Waiting for login in browser...'
     error.value = null
 
     try {
@@ -41,16 +41,16 @@ export const useInstagramStore = defineStore('instagram', () => {
 
       if (!response.ok) {
         const errorData: ApiError = await response.json()
-        throw new Error(errorData.detail || 'Erro ao aguardar login')
+        throw new Error(errorData.detail || 'Error waiting for login')
       }
 
       const data = await response.json()
       isLoggedIn.value = true
-      progressMessage.value = 'Login realizado!'
+      progressMessage.value = 'Login completed!'
       await checkAuthStatus()
       return data
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro desconhecido ao fazer login'
+      const message = err instanceof Error ? err.message : 'Unknown error during login'
       error.value = message
       throw err
     } finally {
@@ -61,7 +61,7 @@ export const useInstagramStore = defineStore('instagram', () => {
   const scrapeProfile = async (request: ScrapeRequest) => {
     isLoading.value = true
     error.value = null
-    progressMessage.value = 'Conectando...'
+    progressMessage.value = 'Connecting...'
 
     return new Promise((resolve, reject) => {
       // Construir query params para SSE
@@ -74,9 +74,9 @@ export const useInstagramStore = defineStore('instagram', () => {
       if (request.max_followers) params.append('max_followers', String(request.max_followers))
       if (request.max_following) params.append('max_following', String(request.max_following))
 
-      // Criar EventSource para receber progresso em tempo real
+      // Create EventSource to receive real-time progress
       const eventSource = new EventSource(`${API_BASE_URL}/scrape-stream?${params}`)
-      let hasError = false  // Flag para evitar múltiplos erros
+      let hasError = false  // Flag to avoid multiple errors
 
       eventSource.addEventListener('progress', (event) => {
         progressMessage.value = event.data
@@ -103,21 +103,21 @@ export const useInstagramStore = defineStore('instagram', () => {
           hasError = true
           eventSource.close()
           isLoading.value = false
-          const message = 'Erro ao processar dados recebidos'
+          const message = 'Error processing received data'
           error.value = message
           reject(new Error(message))
         }
       })
 
-      // Evento customizado de erro do backend (não confundir com onerror de conexão)
+      // Custom error event from backend (don't confuse with connection onerror)
       eventSource.addEventListener('failure', (event: any) => {
         if (hasError) return
         hasError = true
         eventSource.close()
         isLoading.value = false
         
-        // Extrair mensagem de erro do backend
-        let message = 'Erro ao extrair dados do perfil'
+        // Extract error message from backend
+        let message = 'Error extracting profile data'
         try {
           const errorData = JSON.parse(event.data)
           message = errorData.detail || message
@@ -129,13 +129,13 @@ export const useInstagramStore = defineStore('instagram', () => {
         reject(new Error(message))
       })
 
-      // Erro de conexão real (não disparará se já teve erro customizado)
+      // Real connection error (won't fire if already had custom error)
       eventSource.onerror = (event) => {
         if (hasError) return
         hasError = true
         eventSource.close()
         isLoading.value = false
-        const message = 'Conexão perdida com o servidor'
+        const message = 'Connection lost with server'
         error.value = message
         reject(new Error(message))
       }
@@ -147,7 +147,7 @@ export const useInstagramStore = defineStore('instagram', () => {
     followers.value = []
     following.value = []
     error.value = null
-    progressMessage.value = 'Iniciando...'
+    progressMessage.value = 'Starting...'
   }
 
   const clearError = () => {
@@ -160,59 +160,59 @@ export const useInstagramStore = defineStore('instagram', () => {
         method: 'POST',
       })
     } catch (err) {
-      console.error('Erro ao limpar imagens:', err)
+      console.error('Error clearing images:', err)
     }
   }
 
   const exportToCSV = () => {
     if (!profile.value) return
 
-    // Criar conteúdo CSV
+    // Create CSV content
     let csvContent = ''
 
-    // Seção 1: Dados do Perfil
-    csvContent += '=== PERFIL ===\n'
-    csvContent += 'Campo,Valor\n'
+    // Section 1: Profile Data
+    csvContent += '=== PROFILE ===\n'
+    csvContent += 'Field,Value\n'
     csvContent += `Username,${profile.value.username}\n`
-    csvContent += `Nome,${profile.value.name}\n`
+    csvContent += `Name,${profile.value.name}\n`
     csvContent += `Bio,"${(profile.value.bio || '').replace(/"/g, '""')}"\n`
     csvContent += `Posts,${profile.value.posts_count}\n`
-    csvContent += `Seguidores,${profile.value.followers_count}\n`
-    csvContent += `Seguindo,${profile.value.following_count}\n`
-    csvContent += `Foto,${profile.value.profile_pic}\n`
+    csvContent += `Followers,${profile.value.followers_count}\n`
+    csvContent += `Following,${profile.value.following_count}\n`
+    csvContent += `Photo,${profile.value.profile_pic}\n`
     if (profile.value.profile_pic_url) {
-      csvContent += `Foto Original,${profile.value.profile_pic_url}\n`
+      csvContent += `Original Photo,${profile.value.profile_pic_url}\n`
     }
     csvContent += '\n'
 
-    // Seção 2: Seguidores
+    // Section 2: Followers
     if (followers.value.length > 0) {
-      csvContent += '=== SEGUIDORES ===\n'
-      csvContent += 'Username,Nome,URL,Foto Original,Gênero\n'
+      csvContent += '=== FOLLOWERS ===\n'
+      csvContent += 'Username,Name,URL,Original Photo,Gender\n'
       followers.value.forEach(user => {
         const name = (user.name || '').replace(/"/g, '""')
         const photoUrl = user.profile_pic_url || ''
         const gender = user.gender || 'I'
-        const genderLabel = gender === 'M' ? 'Masculino' : gender === 'F' ? 'Feminino' : 'Indeterminado'
+        const genderLabel = gender === 'M' ? 'Male' : gender === 'F' ? 'Female' : 'Undetermined'
         csvContent += `${user.username},"${name}",${user.profile_url},${photoUrl},${genderLabel}\n`
       })
       csvContent += '\n'
     }
 
-    // Seção 3: Seguindo
+    // Section 3: Following
     if (following.value.length > 0) {
-      csvContent += '=== SEGUINDO ===\n'
-      csvContent += 'Username,Nome,URL,Foto Original,Gênero\n'
+      csvContent += '=== FOLLOWING ===\n'
+      csvContent += 'Username,Name,URL,Original Photo,Gender\n'
       following.value.forEach(user => {
         const name = (user.name || '').replace(/"/g, '""')
         const photoUrl = user.profile_pic_url || ''
         const gender = user.gender || 'I'
-        const genderLabel = gender === 'M' ? 'Masculino' : gender === 'F' ? 'Feminino' : 'Indeterminado'
+        const genderLabel = gender === 'M' ? 'Male' : gender === 'F' ? 'Female' : 'Undetermined'
         csvContent += `${user.username},"${name}",${user.profile_url},${photoUrl},${genderLabel}\n`
       })
     }
 
-    // Criar blob e download
+    // Create blob and download
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     const url = URL.createObjectURL(blob)
@@ -229,7 +229,7 @@ export const useInstagramStore = defineStore('instagram', () => {
   const exportToJSON = () => {
     if (!profile.value) return
 
-    // Criar objeto JSON
+    // Create JSON object
     const data = {
       scraped_at: new Date().toISOString(),
       profile: profile.value,
@@ -251,7 +251,7 @@ export const useInstagramStore = defineStore('instagram', () => {
       }
     }
 
-    // Criar blob e download
+    // Create blob and download
     const jsonString = JSON.stringify(data, null, 2)
     const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' })
     const link = document.createElement('a')

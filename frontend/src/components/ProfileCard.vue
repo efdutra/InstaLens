@@ -44,11 +44,11 @@ const formatNumber = (num: number) => {
       </div>
       <div class="stat">
         <span class="stat__value">{{ formatNumber(profile.followers_count) }}</span>
-        <span class="stat__label">Seguidores</span>
+        <span class="stat__label">Followers</span>
       </div>
       <div class="stat">
         <span class="stat__value">{{ formatNumber(profile.following_count) }}</span>
-        <span class="stat__label">Seguindo</span>
+        <span class="stat__label">Following</span>
       </div>
     </div>
   </div>

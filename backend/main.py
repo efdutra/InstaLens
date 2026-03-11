@@ -15,36 +15,36 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Instância global do scraper
+# Global scraper instance
 scraper: Optional[InstagramScraper] = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Gerencia lifecycle da aplicação"""
+    """Manage application lifecycle"""
     global scraper
     # Startup
     headless = os.getenv("HEADLESS", "false").lower() == "true"
     scraper = InstagramScraper(headless=headless)
     await scraper.start()
-    print("✅ Scraper iniciado")
+    print("✅ Scraper started")
     
     yield
     
     # Shutdown
     if scraper:
         await scraper.close()
-    print("👋 Scraper encerrado")
+    print("👋 Scraper stopped")
 
 
 app = FastAPI(title="Instagram Crawler API", lifespan=lifespan)
 
-# Servir imagens estáticas
+# Serve static images
 images_dir = Path("images")
 images_dir.mkdir(exist_ok=True)
 app.mount("/images", StaticFiles(directory="images"), name="images")
 
-# CORS para o Vue.js
+# CORS for Vue.js
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],  # URL do Vue dev server
@@ -70,28 +70,28 @@ async def root():
 
 @app.get("/auth/status")
 async def auth_status():
-    """Verifica se está logado no Instagram"""
+    """Check if logged in Instagram"""
     if not scraper:
-        raise HTTPException(status_code=500, detail="Scraper não inicializado")
+        raise HTTPException(status_code=500, detail="Scraper not initialized")
     
-    # Verificar apenas se existe arquivo de sessão
+    # Check only if session file exists
     has_session = scraper.session_file.exists()
     
     return {
         "logged_in": has_session,
-        "message": "Sessão encontrada" if has_session else "Login necessário"
+        "message": "Session found" if has_session else "Login required"
     }
 
 
 @app.post("/auth/wait-login")
 async def wait_login():
-    """Aguarda login manual (blocking)"""
+    """Wait for manual login (blocking)"""
     if not scraper:
-        raise HTTPException(status_code=500, detail="Scraper não inicializado")
+        raise HTTPException(status_code=500, detail="Scraper not initialized")
     
     try:
         await scraper.wait_for_manual_login()
-        return {"success": True, "message": "Login realizado e sessão salva"}
+        return {"success": True, "message": "Login completed and session saved"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -99,32 +99,32 @@ async def wait_login():
 @app.post("/scrape")
 async def scrape_profile(request: ScrapeRequest):
     """
-    Extrai dados de um perfil do Instagram
+    Extract data from an Instagram profile
     
-    - **username**: @ do usuário (com ou sem @)
-    - **max_followers**: Quantidade máxima de seguidores a extrair
-    - **max_following**: Quantidade máxima de seguindo a extrair
-    - **get_followers**: Se deve extrair lista de seguidores
-    - **get_following**: Se deve extrair lista de seguindo
+    - **username**: User @ (with or without @)
+    - **max_followers**: Maximum number of followers to extract
+    - **max_following**: Maximum number of following to extract
+    - **get_followers**: Whether to extract followers list
+    - **get_following**: Whether to extract following list
     """
     if not scraper:
-        raise HTTPException(status_code=500, detail="Scraper não inicializado")
+        raise HTTPException(status_code=500, detail="Scraper not initialized")
     
-    # Verificar se tem sessão salva
+    # Check if saved session exists
     if not scraper.session_file.exists():
         raise HTTPException(
             status_code=401, 
-            detail="Não está logado. Use /auth/wait-login primeiro"
+            detail="Not logged in. Use /auth/wait-login first"
         )
     
-    # Limpar imagens antigas
+    # Clear old images
     scraper.clear_images()
     
     try:
-        # Extrair dados do perfil
+        # Extract profile data
         profile_data = await scraper.get_profile_data(request.username)
         
-        # Extrair seguidores se solicitado
+        # Extract followers if requested
         if request.get_followers:
             followers = await scraper.get_followers(
                 request.username, 
@@ -132,7 +132,7 @@ async def scrape_profile(request: ScrapeRequest):
             )
             profile_data['followers'] = followers
         
-        # Extrair seguindo se solicitado
+        # Extract following if requested
         if request.get_following:
             following = await scraper.get_following(
                 request.username,
@@ -151,13 +151,13 @@ async def scrape_profile(request: ScrapeRequest):
 
 @app.post("/clear-images")
 async def clear_images():
-    """Limpa todas as imagens salvas"""
+    """Clear all saved images"""
     if not scraper:
-        raise HTTPException(status_code=500, detail="Scraper não inicializado")
+        raise HTTPException(status_code=500, detail="Scraper not initialized")
     
     try:
         scraper.clear_images()
-        return {"success": True, "message": "Imagens limpas"}
+        return {"success": True, "message": "Images cleared"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -170,59 +170,59 @@ async def scrape_stream(
     max_followers: Optional[int] = None,
     max_following: Optional[int] = None
 ):
-    """Versão SSE do scraping com progresso em tempo real"""
+    """SSE version of scraping with real-time progress"""
     if not scraper:
-        raise HTTPException(status_code=500, detail="Scraper não inicializado")
+        raise HTTPException(status_code=500, detail="Scraper not initialized")
     
     if not scraper.session_file.exists():
-        raise HTTPException(status_code=401, detail="Não está logado")
+        raise HTTPException(status_code=401, detail="Not logged in")
     
     async def event_generator():
         try:
-            # Limpar imagens
+            # Clear images
             scraper.clear_images()
-            yield f"event: progress\ndata: 🗑️ Limpando imagens antigas...\n\n"
+            yield f"event: progress\ndata: 🗑️ Clearing old images...\n\n"
             await asyncio.sleep(0.1)
             
-            # Extrair perfil
-            yield f"event: progress\ndata: 📊 Extraindo dados do perfil...\n\n"
+            # Extract profile
+            yield f"event: progress\ndata: 📋 Extracting profile data...\n\n"
             profile_data = await scraper.get_profile_data(username)
-            yield f"event: progress\ndata: ✅ Perfil extraído\n\n"
+            yield f"event: progress\ndata: ✅ Profile extracted\n\n"
             await asyncio.sleep(0.1)
             
-            # Extrair seguidores com progresso em tempo real
+            # Extract followers with real-time progress
             if get_followers:
-                yield f"event: progress\ndata: 👥 Iniciando extração de seguidores...\n\n"
+                yield f"event: progress\ndata: 👥 Starting followers extraction...\n\n"
                 
-                # Usar abordagem com modificação direta da função
-                followers_count = [0]  # Lista para permitir modificação no callback
+                # Use approach with direct function modification
+                followers_count = [0]  # List to allow modification in callback
                 
                 async def followers_callback(count):
                     followers_count[0] = count
                 
-                # Iniciar extração em background
+                # Start extraction in background
                 followers_task = asyncio.create_task(
                     scraper.get_followers(username, max_followers, followers_callback)
                 )
                 
-                # Enquanto extrai, enviar atualizações
+                # While extracting, send updates
                 last_count = 0
                 while not followers_task.done():
                     await asyncio.sleep(1.5)
                     current = followers_count[0]
                     if current > last_count:
-                        yield f"event: progress\ndata: 👥 Extraindo seguidores... {current} extraídos\n\n"
+                        yield f"event: progress\ndata: 👥 Extracting followers... {current} extracted\n\n"
                         last_count = current
                 
-                # Pegar resultado
+                # Get result
                 followers = await followers_task
                 profile_data['followers'] = followers
-                yield f"event: progress\ndata: ✅ {len(followers)} seguidores extraídos\n\n"
+                yield f"event: progress\ndata: ✅ {len(followers)} followers extracted\n\n"
                 await asyncio.sleep(0.1)
             
-            # Extrair seguindo com progresso em tempo real
+            # Extract following with real-time progress
             if get_following:
-                yield f"event: progress\ndata: 👤 Iniciando extração de seguindo...\n\n"
+                yield f"event: progress\ndata: 👤 Starting following extraction...\n\n"
                 
                 following_count = [0]
                 
@@ -238,15 +238,15 @@ async def scrape_stream(
                     await asyncio.sleep(1.5)
                     current = following_count[0]
                     if current > last_count:
-                        yield f"event: progress\ndata: 👤 Extraindo seguindo... {current} extraídos\n\n"
+                        yield f"event: progress\ndata: 👤 Extracting following... {current} extracted\n\n"
                         last_count = current
                 
                 following = await following_task
                 profile_data['following'] = following
-                yield f"event: progress\ndata: ✅ {len(following)} seguindo extraídos\n\n"
+                yield f"event: progress\ndata: ✅ {len(following)} following extracted\n\n"
                 await asyncio.sleep(0.1)
             
-            # Enviar dados completos
+            # Send complete data
             yield f"event: complete\ndata: {json.dumps({'success': True, 'data': profile_data})}\n\n"
             
         except Exception as e:

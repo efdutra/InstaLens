@@ -21,7 +21,7 @@ const genderFilters = ref<string[]>([])
 const hasResults = computed(() => store.profile !== null)
 const showForm = computed(() => !store.isLoading && !hasResults.value)
 
-// Contar usuários por gênero
+// Count users by gender
 const genderCounts = computed(() => {
   const counts = { M: 0, F: 0, I: 0 }
   const users = activeTab.value === 'followers' ? store.followers : store.following
@@ -32,11 +32,11 @@ const genderCounts = computed(() => {
   return counts
 })
 
-// Filtrar seguidores baseado na busca e gênero
+// Filter followers based on search and gender
 const filteredFollowers = computed(() => {
   let filtered = store.followers
   
-  // Filtro de busca
+  // Search filter
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase().trim()
     filtered = filtered.filter(user => 
@@ -45,7 +45,7 @@ const filteredFollowers = computed(() => {
     )
   }
   
-  // Filtro de gênero
+  // Gender filter
   if (genderFilters.value.length > 0) {
     filtered = filtered.filter(user => {
       const gender = user.gender || 'I'
@@ -56,11 +56,11 @@ const filteredFollowers = computed(() => {
   return filtered
 })
 
-// Filtrar seguindo baseado na busca e gênero
+// Filter following based on search and gender
 const filteredFollowing = computed(() => {
   let filtered = store.following
   
-  // Filtro de busca
+  // Search filter
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase().trim()
     filtered = filtered.filter(user => 
@@ -69,7 +69,7 @@ const filteredFollowing = computed(() => {
     )
   }
   
-  // Filtro de gênero
+  // Gender filter
   if (genderFilters.value.length > 0) {
     filtered = filtered.filter(user => {
       const gender = user.gender || 'I'
@@ -88,9 +88,9 @@ const handleLogin = async () => {
   isLoggingIn.value = true
   try {
     await store.waitForLogin()
-    alert('✅ Login realizado com sucesso!')
+    alert('✅ Login completed successfully!')
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Erro ao fazer login'
+    const message = err instanceof Error ? err.message : 'Error during login'
     alert('❌ ' + message)
   } finally {
     isLoggingIn.value = false
@@ -99,7 +99,7 @@ const handleLogin = async () => {
 
 const handleSubmit = async () => {
   if (!username.value.trim()) {
-    store.error = 'Por favor, insira um username'
+    store.error = 'Please enter a username'
     return
   }
 
@@ -111,7 +111,7 @@ const handleSubmit = async () => {
     get_following: getFollowing.value,
   }
 
-  // Adiciona limites apenas se foram definidos
+  // Add limits only if defined
   if (maxFollowers.value && getFollowers.value) {
     request.max_followers = maxFollowers.value
   }
@@ -122,20 +122,20 @@ const handleSubmit = async () => {
 
   try {
     await store.scrapeProfile(request)
-    console.log('✅ Dados extraídos com sucesso!')
+    console.log('✅ Data extracted successfully!')
   } catch (err) {
-    console.error('❌ Erro ao buscar perfil:', err)
+    console.error('❌ Error searching profile:', err)
   }
 }
 
 const handleReset = async () => {
-  // Limpar imagens no backend
+  // Clear images on backend
   await store.clearBackendImages()
   
-  // Limpar dados do store
+  // Clear data from store
   store.clearData()
   
-  // Resetar formulário
+  // Reset form
   username.value = ''
   maxFollowers.value = 10
   maxFollowing.value = 10
@@ -149,41 +149,42 @@ const handleReset = async () => {
 
 <template>
   <div class="homepage">
-    <!-- Hero Section + Form - Só mostra quando não está carregando e não tem resultados -->
+    <!-- Hero Section + Form - Only shows when not loading and has no results -->
     <template v-if="showForm">
       <div class="hero" v-if="false">
         <h2 class="hero__title">Instagram Crawler</h2>
         <p class="hero__subtitle">
-          Extraia dados de perfis do Instagram de forma automatizada
+          Extract Instagram profile data automatically
         </p>
       </div>
 
       <!-- Authentication Section -->
-      <div class="card auth-card">
+      <div class="card auth-card" :class="{ 'auth-card--centered': !store.isLoggedIn }">
         <div v-if="store.isLoggedIn" class="auth-status auth-status--logged">
           <span class="status-icon">✅</span>
-          <span class="status-text">Sessão ativa no Instagram</span>
+          <span class="status-text">Active Instagram session</span>
         </div>
         
         <div v-else class="auth-status auth-status--not-logged">
           <span class="status-icon">🔓</span>
-          <span class="status-text">Você precisa fazer login no Instagram</span>
+          <span class="status-text">You need to login to Instagram</span>
           <button 
             @click="handleLogin" 
             class="btn btn-primary btn-login"
             :disabled="isLoggingIn"
           >
-            {{ isLoggingIn ? 'Aguardando login...' : 'Fazer Login' }}
+            {{ isLoggingIn ? 'Waiting for login...' : 'Login' }}
           </button>
         </div>
       </div>
 
       <!-- Form Card -->
+      <div class="overlay" v-if="!store.isLoggedIn"></div>
       <div class="card form-card">
         <form @submit.prevent="handleSubmit" class="form">
           <!-- Username Input -->
           <div class="form-group">
-            <label for="username" class="form-label">Username do Instagram</label>
+            <label for="username" class="form-label">Instagram Username</label>
             <div class="input-wrapper">
               <span class="input-prefix">@</span>
               <input
@@ -201,39 +202,39 @@ const handleReset = async () => {
           <div class="checkbox-group">
             <label class="checkbox-label">
               <input v-model="getFollowers" type="checkbox" />
-              <span>Extrair Seguidores</span>
+              <span>Extract Followers</span>
             </label>
 
             <label class="checkbox-label">
               <input v-model="getFollowing" type="checkbox" />
-              <span>Extrair Seguindo</span>
+              <span>Extract Following</span>
             </label>
           </div>
 
           <!-- Quantity Inputs -->
           <div class="quantity-grid">
             <div v-if="getFollowers" class="form-group">
-              <label for="maxFollowers" class="form-label">Máx. Seguidores</label>
+              <label for="maxFollowers" class="form-label">Max. Followers</label>
               <input
                 id="maxFollowers"
                 v-model.number="maxFollowers"
                 type="number"
                 min="1"
-                placeholder="Vazio = todos"
+                placeholder="Empty = all"
               />
-              <p class="form-hint">Deixe vazio para extrair todos</p>
+              <p class="form-hint">Leave empty to extract all</p>
             </div>
 
             <div v-if="getFollowing" class="form-group">
-              <label for="maxFollowing" class="form-label">Máx. Seguindo</label>
+              <label for="maxFollowing" class="form-label">Max. Following</label>
               <input
                 id="maxFollowing"
                 v-model.number="maxFollowing"
                 type="number"
                 min="1"
-                placeholder="Vazio = todos"
+                placeholder="Empty = all"
               />
-              <p class="form-hint">Deixe vazio para extrair todos</p>
+              <p class="form-hint">Leave empty to extract all</p>
             </div>
           </div>
 
@@ -249,14 +250,14 @@ const handleReset = async () => {
             class="btn btn-primary btn-submit"
             :disabled="!store.isLoggedIn"
           >
-            {{ store.isLoggedIn ? 'Buscar Perfil' : 'Faça login primeiro' }}
+            Search Profile
           </button>
         </form>
       </div>
 
       <!-- Info Footer -->
       <div class="footer-info">
-        <p>⚠️ Projeto educacional. Use por sua conta e risco.</p>
+        <p>⚠️ Educational project. Use at your own risk.</p>
       </div>
     </template>
 
@@ -277,14 +278,14 @@ const handleReset = async () => {
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Buscar por username ou nome..."
+            placeholder="Search by username or name..."
             class="search-input"
           />
           <button 
             v-if="searchQuery" 
             @click="searchQuery = ''"
             class="search-clear"
-            title="Limpar busca"
+            title="Clear search"
           >
             ✕
           </button>
@@ -292,19 +293,19 @@ const handleReset = async () => {
         
         <!-- Gender Filter -->
         <div class="gender-filter">
-          <label class="filter-title">👥 Filtrar por gênero:</label>
+          <label class="filter-title">👥 Filter by gender:</label>
           <div class="filter-checkboxes">
             <label class="checkbox-label">
               <input type="checkbox" value="M" v-model="genderFilters" />
-              <span>♂️ Masculino ({{ genderCounts.M }})</span>
+              <span>♂️ Male ({{ genderCounts.M }})</span>
             </label>
             <label class="checkbox-label">
               <input type="checkbox" value="F" v-model="genderFilters" />
-              <span>♀️ Feminino ({{ genderCounts.F }})</span>
+              <span>♀️ Female ({{ genderCounts.F }})</span>
             </label>
             <label class="checkbox-label">
               <input type="checkbox" value="I" v-model="genderFilters" />
-              <span>❓ Indeterminado ({{ genderCounts.I }})</span>
+              <span>❓ Undetermined ({{ genderCounts.I }})</span>
             </label>
           </div>
           <button 
@@ -312,7 +313,7 @@ const handleReset = async () => {
             @click="genderFilters = []"
             class="btn btn-secondary btn-small"
           >
-            🗑️ Limpar Filtros
+            🗑️ Clear Filters
           </button>
         </div>
       </div>
@@ -326,7 +327,7 @@ const handleReset = async () => {
             :class="{ active: activeTab === 'followers' }"
             @click="activeTab = 'followers'"
           >
-            Seguidores 
+            Followers 
             <span class="tab-count">
               {{ searchQuery ? `${filteredFollowers.length}/` : '' }}{{ store.followers.length }}
             </span>
@@ -337,7 +338,7 @@ const handleReset = async () => {
             :class="{ active: activeTab === 'following' }"
             @click="activeTab = 'following'"
           >
-            Seguindo 
+            Following 
             <span class="tab-count">
               {{ searchQuery ? `${filteredFollowing.length}/` : '' }}{{ store.following.length }}
             </span>
@@ -349,22 +350,22 @@ const handleReset = async () => {
           <UserList
             v-if="activeTab === 'followers' && filteredFollowers.length > 0"
             :users="filteredFollowers"
-            title="Seguidores"
+            title="Followers"
           />
           <UserList
             v-if="activeTab === 'following' && filteredFollowing.length > 0"
             :users="filteredFollowing"
-            title="Seguindo"
+            title="Following"
           />
           
-          <!-- Empty State quando filtro não encontra nada -->
+          <!-- Empty state when filter finds nothing -->
           <div 
             v-if="(activeTab === 'followers' && filteredFollowers.length === 0 && store.followers.length > 0) ||
                   (activeTab === 'following' && filteredFollowing.length === 0 && store.following.length > 0)"
             class="empty-state"
           >
             <span class="empty-icon">🔍</span>
-            <p>Nenhum resultado encontrado para "{{ searchQuery }}"</p>
+            <p>No results found for "{{ searchQuery }}"</p>
           </div>
         </div>
       </div>
@@ -372,13 +373,13 @@ const handleReset = async () => {
       <!-- Export & Reset Buttons -->
       <div class="reset-section">
         <button @click="store.exportToCSV" class="btn btn-secondary btn-action">
-          📥 Exportar CSV
+          📥 Export CSV
         </button>
         <button @click="store.exportToJSON" class="btn btn-secondary btn-action">
-          📄 Exportar JSON
+          📄 Export JSON
         </button>
         <button @click="handleReset" class="btn btn-primary btn-action">
-          🔄 Buscar Novamente
+          🔄 Search Again
         </button>
       </div>
     </div>
@@ -415,6 +416,18 @@ const handleReset = async () => {
 
 .auth-card {
   margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 20;
+
+  &--centered {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(100% - 2rem);
+    max-width: 40rem;
+    margin-bottom: 0;
+  }
 }
 
 .auth-status {
@@ -434,6 +447,8 @@ const handleReset = async () => {
   }
 
   &--logged {
+    position: relative;
+    
     .status-text {
       color: $color-primary;
       font-weight: 500;
@@ -459,6 +474,20 @@ const handleReset = async () => {
 
 .form-card {
   margin-bottom: 2rem;
+  position: relative;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 1rem;
+  z-index: 10;
+  pointer-events: all;
+  cursor: not-allowed;
 }
 
 .form {

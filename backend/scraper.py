@@ -20,18 +20,18 @@ class InstagramScraper:
         self.images_dir = Path("images")
         self.images_dir.mkdir(exist_ok=True)
         
-        # Carregar caches de nomes para classificação de gênero
+        # Load name caches for gender classification
         self.names_male = {}
         self.names_female = {}
         self._load_names_cache()
         
-        # Carregar caches de nomes para classificação de gênero
+        # Load name caches for gender classification
         self.names_male = {}
         self.names_female = {}
         self._load_names_cache()
     
     def _load_names_cache(self):
-        """Carrega caches de nomes do IBGE"""
+        """Load IBGE name caches"""
         try:
             male_file = Path("names_cache_male.json")
             female_file = Path("names_cache_female.json")
@@ -39,42 +39,42 @@ class InstagramScraper:
             if male_file.exists():
                 with open(male_file, 'r', encoding='utf-8') as f:
                     self.names_male = json.load(f)
-                print(f"✅ {len(self.names_male)} nomes masculinos carregados")
+                print(f"✅ {len(self.names_male)} male names loaded")
             else:
-                print("⚠️ Cache de nomes masculinos não encontrado")
+                print("⚠️ Male names cache not found")
             
             if female_file.exists():
                 with open(female_file, 'r', encoding='utf-8') as f:
                     self.names_female = json.load(f)
-                print(f"✅ {len(self.names_female)} nomes femininos carregados")
+                print(f"✅ {len(self.names_female)} female names loaded")
             else:
-                print("⚠️ Cache de nomes femininos não encontrado")
+                print("⚠️ Female names cache not found")
         except Exception as e:
-            print(f"❌ Erro ao carregar caches de nomes: {e}")
+            print(f"❌ Error loading names caches: {e}")
     
     def classify_gender(self, full_name: str) -> str:
-        """Classifica o gênero baseado no primeiro nome
+        """Classify gender based on first name
         
         Args:
-            full_name: Nome completo do usuário
+            full_name: User's full name
             
         Returns:
-            'M' para masculino, 'F' para feminino, 'I' para indeterminado
+            'M' for male, 'F' for female, 'I' for undetermined
         """
         if not full_name:
             return 'I'
         
-        # Pegar primeiro nome e normalizar
+        # Get first name and normalize
         first_name = full_name.split()[0].lower().strip()
         
-        # Verificar nome completo nos caches
+        # Check full name in caches
         if first_name in self.names_male:
             return 'M'
         elif first_name in self.names_female:
             return 'F'
         
-        # Se não encontrou, tentar prefixos (para casos como "caiomini" -> "caio")
-        # Testar prefixos de 4 a 8 caracteres
+        # If not found, try prefixes (for cases like "caiomini" -> "caio")
+        # Test prefixes from 4 to 8 characters
         if len(first_name) > 4:
             for length in range(min(8, len(first_name)), 3, -1):
                 prefix = first_name[:length]
@@ -86,56 +86,56 @@ class InstagramScraper:
         return 'I'
         
     async def _download_image(self, url: str) -> Tuple[Optional[str], Optional[str]]:
-        """Baixa imagem e salva localmente, retorna (caminho_local, url_original)"""
+        """Download image and save locally, returns (local_path, original_url)"""
         if not url:
             return None
             
         try:
-            # Gerar hash único para a imagem
+            # Generate unique hash for image
             url_hash = hashlib.md5(url.encode()).hexdigest()
             filename = f"{url_hash}.jpg"
             filepath = self.images_dir / filename
             
-            # Se já existe, retorna o caminho
+            # If already exists, return path
             if filepath.exists():
                 return (f"/images/{filename}", url)
             
-            # Baixar imagem
+            # Download image
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.get(url)
                 if response.status_code == 200:
                     filepath.write_bytes(response.content)
                     return (f"/images/{filename}", url)
                 else:
-                    print(f"❌ Erro ao baixar imagem: {response.status_code}")
+                    print(f"❌ Error downloading image: {response.status_code}")
                     return (None, url)
         except Exception as e:
-            print(f"❌ Erro ao baixar imagem: {e}")
+            print(f"❌ Error downloading image: {e}")
             return (None, url)
     
     def clear_images(self):
-        """Limpa todas as imagens salvas"""
+        """Clears all saved images"""
         try:
             for file in self.images_dir.glob("*.jpg"):
                 file.unlink()
-            print("🗑️ Imagens limpas")
+            print("🗑️ Images cleared")
         except Exception as e:
-            print(f"❌ Erro ao limpar imagens: {e}")
+            print(f"❌ Error clearing images: {e}")
         
     async def _ensure_browser_started(self, headless: bool = False):
-        """Garante que o navegador está aberto (lazy loading)"""
+        """Ensures browser is open (lazy loading)"""
         if self.browser:
-            return  # Já está rodando
+            return  # Already running
         
         if not self.playwright:
             self.playwright = await async_playwright().start()
         
-        mode = "invisível (headless)" if headless else "visível"
-        print(f"🌐 Abrindo navegador {mode}...")
+        mode = "invisible (headless)" if headless else "visible"
+        print(f"🌐 Opening browser {mode}...")
         
         self.browser = await self.playwright.chromium.launch(headless=headless)
         
-        # Criar contexto com ou sem sessão
+        # Create context with or without session
         if self.session_file.exists():
             with open(self.session_file, 'r') as f:
                 storage_state = json.load(f)
@@ -148,32 +148,32 @@ class InstagramScraper:
         await asyncio.sleep(3)
     
     async def start(self):
-        """Apenas inicializa (não abre navegador)"""
-        print("✅ InstagramScraper inicializado")
+        """Just initializes (doesn't open browser)"""
+        print("✅ InstagramScraper initialized")
         if self.session_file.exists():
-            print("🔒 Sessão encontrada - navegador abrirá em modo invisível quando necessário")
+            print("🔒 Session found - browser will open in invisible mode when needed")
         else:
-            print("👁️ Sem sessão salva - navegador abrirá visível para login")
+            print("👁️ No saved session - browser will open visible for login")
         
     async def close(self):
-        """Fecha o browser"""
+        """Close browser"""
         if self.browser:
             await self.browser.close()
         if self.playwright:
             await self.playwright.stop()
         
     async def is_logged_in(self) -> bool:
-        """Verifica se está logado"""
+        """Check if logged in"""
         try:
-            # Verificar se não está na página de login
+            # Check if not on login page
             current_url = self.page.url
             if '/accounts/login' in current_url:
                 return False
             
-            # Verificar se tem elementos que só aparecem quando logado
+            # Check if has elements that only appear when logged in
             selectors = [
                 'a[href="/"]',
-                'svg[aria-label="Página inicial"]',
+                'svg[aria-label="Home"]',
                 'svg[aria-label="Home"]',
                 'a[href*="/direct/"]',
                 'div[role="menubar"]',
@@ -191,12 +191,12 @@ class InstagramScraper:
             return False
     
     async def wait_for_manual_login(self):
-        """Aguarda login manual do usuário - abre visível e FECHA após salvar"""
-        # Abrir navegador VISÍVEL para login
+        """Wait for user manual login - opens visible and CLOSES after saving"""
+        # Open VISIBLE browser for login
         await self._ensure_browser_started(headless=False)
         
-        print("\n🔐 Por favor, faça login manualmente na janela do browser...")
-        print("⏳ Aguardando login...")
+        print("\n🔐 Please login manually in the browser window...")
+        print("⏳ Waiting for login...")
         
         login_detected = False
         max_attempts = 150  # 150 * 2s = 5 min
@@ -208,28 +208,28 @@ class InstagramScraper:
             await asyncio.sleep(2)
         
         if not login_detected:
-            raise Exception("Timeout: Login não detectado após 5 minutos")
+            raise Exception("Timeout: Login not detected after 5 minutes")
         
-        print("✅ Login detectado! Salvando sessão...")
+        print("✅ Login detected! Saving session...")
         
-        # Salvar cookies
+        # Save cookies
         storage_state = await self.context.storage_state()
         with open(self.session_file, 'w') as f:
             json.dump(storage_state, f)
         
-        print(f"💾 Sessão salva em {self.session_file}")
+        print(f"💾 Session saved in {self.session_file}")
         
-        # FECHAR navegador completamente após login
-        print("🚪 Fechando navegador...")
+        # CLOSE browser completely after login
+        print("🚪 Closing browser...")
         await self.browser.close()
         self.browser = None
         self.context = None
         self.page = None
-        print("✅ Login concluído - navegador fechado")
+        print("✅ Login completed - browser closed")
     
     async def get_profile_data(self, username: str) -> Dict:
-        """Extrai dados do perfil"""
-        # Abrir navegador HEADLESS (invisível) para scraping
+        """Extract profile data"""
+        # Open browser HEADLESS (invisible) for scraping
         await self._ensure_browser_started(headless=True)
         
         username = username.replace('@', '')
@@ -237,19 +237,19 @@ class InstagramScraper:
         await self.page.goto(f"https://www.instagram.com/{username}/")
         await asyncio.sleep(5)
         
-        # Verificar se foi redirecionado para login (sessão inválida)
+        # Check if redirected to login (invalid session)
         if '/accounts/login' in self.page.url:
-            print("⚠️ Sessão expirada! Deletando session.json...")
+            print("⚠️ Session expired! Deleting session.json...")
             if self.session_file.exists():
                 self.session_file.unlink()
             raise Exception(
-                "Sessão expirada. Por favor, faça login novamente usando /auth/wait-login"
+                "Session expired. Please login again using /auth/wait-login"
             )
         
         try:
             await self.page.wait_for_selector('header', timeout=10000)
         except:
-            raise Exception(f"Perfil @{username} não encontrado")
+            raise Exception(f"Profile @{username} not found")
         
         data = {
             "username": username,
@@ -264,7 +264,7 @@ class InstagramScraper:
         }
         
         try:
-            # Nome
+            # Name
             name_selectors = [
                 'header section h1',
                 'header section h2',
@@ -283,20 +283,20 @@ class InstagramScraper:
             if not data["name"]:
                 data["name"] = username
             
-            # Foto de perfil
+            # Profile picture
             pic_selectors = ['header img', 'main header img']
             for selector in pic_selectors:
                 pic_elem = await self.page.query_selector(selector)
                 if pic_elem:
                     src = await pic_elem.get_attribute('src')
                     if src and 'profile' in src:
-                        # Baixar imagem localmente
+                        # Download image locally
                         local_path, original_url = await self._download_image(src)
                         data["profile_pic"] = local_path if local_path else src
                         data["profile_pic_url"] = original_url
                         break
             
-            # Contadores - extrair do texto do header
+            # Counters - extract from header text
             header_text = await self.page.inner_text('header')
             lines = [line.strip() for line in header_text.split('\n') if line.strip()]
             
@@ -304,14 +304,14 @@ class InstagramScraper:
                 line_lower = line.lower()
                 if 'post' in line_lower and not data["posts_count"]:
                     data["posts_count"] = self._extract_number(line)
-                elif 'seguidor' in line_lower and not data["followers_count"]:
+                elif 'seguidor' in line_lower and not data["followers_count"]:  # Portuguese: "seguidores"
                     data["followers_count"] = self._extract_number(line)
-                elif 'seguindo' in line_lower and not data["following_count"]:
+                elif 'seguindo' in line_lower and not data["following_count"]:  # Portuguese: "seguindo"
                     data["following_count"] = self._extract_number(line)
             
-            # Bio - linhas que não são stats
+            # Bio - lines that are not stats
             bio_lines = []
-            skip_keywords = ['post', 'seguidor', 'seguindo', username.lower()]
+            skip_keywords = ['post', 'seguidor', 'seguindo', username.lower()]  # Portuguese keywords from Instagram UI
             for line in lines:
                 line_clean = line.lower()
                 if any(kw in line_clean for kw in skip_keywords):
@@ -325,12 +325,12 @@ class InstagramScraper:
                 data["bio"] = '\n'.join(bio_lines[:3])
                 
         except Exception as e:
-            print(f"⚠️ Erro ao extrair dados: {e}")
+            print(f"⚠️ Error extracting data: {e}")
         
         return data
     
     async def get_followers(self, username: str, max_followers: Optional[int] = None, progress_callback=None) -> List[Dict]:
-        """Extrai lista de seguidores"""
+        """Extract followers list"""
         username = username.replace('@', '')
         await self.page.goto(f"https://www.instagram.com/{username}/")
         await asyncio.sleep(2)
@@ -343,14 +343,14 @@ class InstagramScraper:
             await followers_btn.click()
             await asyncio.sleep(3)
         except Exception as e:
-            print(f"❌ Erro ao abrir lista de seguidores: {e}")
+            print(f"❌ Error opening followers list: {e}")
             return []
         
         followers = await self._scroll_and_extract_users(max_followers, progress_callback)
         return followers
     
     async def get_following(self, username: str, max_following: Optional[int] = None, progress_callback=None) -> List[Dict]:
-        """Extrai lista de seguindo"""
+        """Extract following list"""
         username = username.replace('@', '')
         await self.page.goto(f"https://www.instagram.com/{username}/")
         await asyncio.sleep(2)
@@ -363,33 +363,33 @@ class InstagramScraper:
             await following_btn.click()
             await asyncio.sleep(3)
         except Exception as e:
-            print(f"❌ Erro ao abrir lista de seguindo: {e}")
+            print(f"❌ Error opening following list: {e}")
             return []
         
         following = await self._scroll_and_extract_users(max_following, progress_callback)
         return following
     
     async def _scroll_and_extract_users(self, max_users: Optional[int], progress_callback=None) -> List[Dict]:
-        """Scroll infinito e extração de usuários"""
+        """Infinite scroll and user extraction"""
         users = []
         seen_usernames = set()
         
-        await asyncio.sleep(3)  # Esperar modal abrir completamente
+        await asyncio.sleep(3)  # Wait for modal to fully open
         
-        # Tentar encontrar o modal/dialog
+        # Try to find modal/dialog
         modal = await self.page.query_selector('div[role="dialog"]')
         if not modal:
-            print("❌ Modal não encontrado")
+            print("❌ Modal not found")
             return []
         
-        # Se max_users for None, definir um valor alto para "extrair todos"
+        # If max_users is None, set high value for "extract all"
         if max_users is None:
             max_users = 999999
-            print("📊 Modo 'extrair todos' ativado (sem limite)")
+            print(f"💡 'Extract all' mode activated")
         else:
-            print(f"📊 Limite máximo: {max_users} usuários")
+            print(f"💡 Maximum limit: {max_users} users")
         
-        print(f"📜 Iniciando scroll para carregar usuários...")
+        print(f"📜 Starting scroll to load users...")
         
         previous_count = 0
         no_change_count = 0
@@ -399,14 +399,14 @@ class InstagramScraper:
         while len(users) < max_users and scroll_attempts < max_scroll_attempts:
             scroll_attempts += 1
             
-            # Múltiplas tentativas de seletores para encontrar usuários
+            # Multiple selector attempts to find users
             user_elements = []
             
-            # Tentar diferentes seletores
+            # Try different selectors
             selectors = [
-                'a[href^="/"][role="link"]',  # Links de perfil
-                'a[href^="/"]',  # Qualquer link começando com /
-                'div[role="dialog"] a',  # Todos os links no dialog
+                'a[href^="/"][role="link"]',  # Profile links
+                'a[href^="/"]',  # Any link starting with /
+                'div[role="dialog"] a',  # All links in dialog
             ]
             
             for selector in selectors:
@@ -415,7 +415,7 @@ class InstagramScraper:
                     break
             
             if not user_elements:
-                print(f"⚠️ Nenhum elemento encontrado. Tentativa {scroll_attempts}")
+                print(f"⚠️ No elements found. Attempt {scroll_attempts}")
                 await asyncio.sleep(2)
                 continue
             
@@ -425,31 +425,31 @@ class InstagramScraper:
                     if not href:
                         continue
                     
-                    # Filtrar links inválidos
+                    # Filter invalid links
                     if any(x in href for x in ['/explore/', '/p/', '/reel/', '/tv/', '/accounts/']):
                         continue
                     
                     if href == '/' or href == '/direct/':
                         continue
                     
-                    # Extrair username
+                    # Extract username
                     parts = [p for p in href.strip('/').split('/') if p]
                     if not parts:
                         continue
                     
                     username = parts[0]
                     
-                    # Validar username
+                    # Validate username
                     if username in seen_usernames or len(username) < 2:
                         continue
                     
-                    # Verificar se é um username válido (sem caracteres especiais estranhos)
+                    # Check if is a valid username (no strange special characters)
                     if not re.match(r'^[a-zA-Z0-9._]+$', username):
                         continue
                     
                     seen_usernames.add(username)
                     
-                    # Tentar pegar imagem e nome
+                    # Try to get image and name
                     img = await elem.query_selector('img')
                     profile_pic = ""
                     name = ""
@@ -458,25 +458,25 @@ class InstagramScraper:
                         profile_pic_url = await img.get_attribute('src') or ""
                         name = await img.get_attribute('alt') or ""
                         
-                        # Limpar texto do alt (português e inglês)
+                        # Clean alt text (Portuguese and English)
                         name = name.replace('Foto do perfil de', '').strip()
                         name = name.replace('Photo by', '').strip()
                         name = name.replace("'s profile picture", '').strip()
                         name = name.replace('profile picture', '').strip()
                         
-                        # Se o nome resultante for vazio ou muito curto, usar username
+                        # If resulting name is empty or too short, use username
                         if not name or len(name) < 2:
                             name = username
                         
-                        # Se o nome ainda parece ser um username (tem _, números), tentar extrair nome
+                        # If name still looks like username (has _, numbers), try to extract name
                         if '_' in name or any(char.isdigit() for char in name):
-                            # Tentar pegar a primeira parte antes de números/underscores
+                            # Try to get first part before numbers/underscores
                             parts = re.split(r'[_\d]', name)
                             first_part = parts[0] if parts and len(parts[0]) > 1 else name
                             if len(first_part) > 1:
                                 name = first_part
                         
-                        # Baixar imagem localmente
+                        # Download image locally
                         profile_pic = profile_pic_url
                         if profile_pic_url:
                             local_path, original_url = await self._download_image(profile_pic_url)
@@ -486,7 +486,7 @@ class InstagramScraper:
                     if not name:
                         name = username
                     
-                    # Classificar gênero
+                    # Classify gender
                     gender = self.classify_gender(name)
                     
                     users.append({
@@ -504,16 +504,16 @@ class InstagramScraper:
                 except Exception as e:
                     continue
             
-            # Verificar progresso
+            # Check progress
             if len(users) == previous_count:
                 no_change_count += 1
                 if no_change_count >= 5:
-                    print(f"   Não há mais usuários para carregar.")
+                    print(f"   No more users to load.")
                     break
             else:
                 no_change_count = 0
-                print(f"   Carregados: {len(users)} usuários...")
-                # Callback de progresso
+                print(f"   Loaded: {len(users)} users...")
+                # Progress callback
                 if progress_callback:
                     await progress_callback(len(users))
                 previous_count = len(users)
@@ -521,11 +521,11 @@ class InstagramScraper:
             if len(users) >= max_users:
                 break
             
-            # Scroll no modal - tentar múltiplas estratégias
+            # Scroll in modal - try multiple strategies
             try:
                 scrolled = await modal.evaluate('''
                     (element) => {
-                        // Estratégia 1: Buscar divs dentro do dialog que tem overflow
+                        // Strategy 1: Find divs inside dialog that have overflow
                         let scrollableDivs = Array.from(element.querySelectorAll('div')).filter(div => {
                             const style = window.getComputedStyle(div);
                             return (style.overflowY === 'auto' || 
@@ -534,16 +534,16 @@ class InstagramScraper:
                                    style.overflow === 'scroll');
                         });
                         
-                        // Se achou divs scrollable, pegar o primeiro com scrollHeight > clientHeight
+                        // If found scrollable divs, get first one with scrollHeight > clientHeight
                         for (let div of scrollableDivs) {
                             if (div.scrollHeight > div.clientHeight) {
                                 const before = div.scrollTop;
-                                div.scrollBy(0, 1000);  // Scroll 1000px para baixo
-                                return div.scrollTop > before;  // Retorna true se scrollou
+                                div.scrollBy(0, 1000);  // Scroll 1000px down
+                                return div.scrollTop > before;  // Return true if scrolled
                             }
                         }
                         
-                        // Estratégia 2: Scroll no dialog inteiro
+                        // Strategy 2: Scroll in entire dialog
                         const before = element.scrollTop;
                         element.scrollBy(0, 1000);
                         return element.scrollTop > before;
@@ -551,20 +551,20 @@ class InstagramScraper:
                 ''')
                 
                 if scrolled:
-                    print(f"   🔄 Scrollando...")
+                    print(f"   🔄 Scrolling...")
                 else:
-                    print(f"   ⚠️ Scroll não funcionou, tentando novamente...")
+                    print(f"   ⚠️ Scroll didn't work, trying again...")
                 
                 await asyncio.sleep(2.5)
             except Exception as e:
-                print(f"⚠️ Erro no scroll: {e}")
+                print(f"⚠️ Error scrolling: {e}")
                 break
         
-        print(f"✅ Total extraído: {len(users)} usuários")
+        print(f"✅ Total extracted: {len(users)} users")
         return users[:max_users]
     
     def _extract_number(self, text: str) -> int:
-        """Extrai número de texto"""
+        """Extract number from text"""
         numbers = re.findall(r'[\d.,]+', text)
         if numbers:
             num_str = numbers[0].replace('.', '').replace(',', '')
@@ -585,41 +585,41 @@ async def main():
         if not await scraper.is_logged_in():
             await scraper.wait_for_manual_login()
         else:
-            print("✅ Já está logado!")
+            print("✅ Already logged in!")
         
-        username = input("\n📝 Digite o @ do usuário (ex: instagram): ").strip()
+        username = input("\n📝 Enter user @ (ex: instagram): ").strip()
         
-        print(f"\n🔍 Buscando dados de @{username}...")
+        print(f"\n🔍 Searching data for @{username}...")
         profile_data = await scraper.get_profile_data(username)
         
-        print(f"\n👤 Perfil: {profile_data['name']}")
-        print(f"📝 Bio: {profile_data['bio'][:50]}..." if profile_data['bio'] else "📝 Bio: (sem bio)")
+        print(f"\n👤 Profile: {profile_data['name']}")
+        print(f"📝 Bio: {profile_data['bio'][:50]}..." if profile_data['bio'] else "📝 Bio: (no bio)")
         print(f"📸 Posts: {profile_data['posts_count']}")
-        print(f"👥 Seguidores: {profile_data['followers_count']}")
-        print(f"➡️ Seguindo: {profile_data['following_count']}")
+        print(f"👥 Followers: {profile_data['followers_count']}")
+        print(f"➡️ Following: {profile_data['following_count']}")
         
-        if input("\n❓ Extrair seguidores? (s/n): ").lower() == 's':
-            max_input = input("Quantos? (Vazio = todos): ").strip()
+        if input("\n❓ Extract followers? (y/n): ").lower() == 'y':
+            max_input = input("How many? (Empty = all): ").strip()
             max_followers = int(max_input) if max_input else 999999
             followers = await scraper.get_followers(username, max_followers)
             profile_data['followers'] = followers
-            print(f"✅ {len(followers)} seguidores extraídos")
+            print(f"✅ {len(followers)} followers extracted")
         
-        if input("\n❓ Extrair seguindo? (s/n): ").lower() == 's':
-            max_input = input("Quantos? (Vazio = todos): ").strip()
+        if input("\n❓ Extract following? (y/n): ").lower() == 'y':
+            max_input = input("How many? (Empty = all): ").strip()
             max_following = int(max_input) if max_input else 999999
             following = await scraper.get_following(username, max_following)
             profile_data['following'] = following
-            print(f"✅ {len(following)} seguindo extraídos")
+            print(f"✅ {len(following)} following extracted")
         
         output_file = f"{username}_data.json"
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(profile_data, f, indent=2, ensure_ascii=False)
         
-        print(f"\n💾 Dados salvos em {output_file}")
+        print(f"\n💾 Data saved in {output_file}")
         
     except Exception as e:
-        print(f"\n❌ Erro: {e}")
+        print(f"\n❌ Error: {e}")
     finally:
         await scraper.close()
 
