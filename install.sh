@@ -27,7 +27,6 @@ INFO="ℹ️"
 
 # Configuration
 REPO_URL="https://github.com/efdutra/InstaLens.git"
-INSTALL_DIR="$HOME/InstaLens"
 PYTHON_MIN_VERSION="3.9"
 NODE_MIN_VERSION="18"
 
@@ -133,6 +132,34 @@ check_pnpm() {
     fi
 }
 
+ask_install_location() {
+    local current_dir=$(pwd)
+    local default_location="$current_dir/InstaLens"
+    
+    echo ""
+    print_step "Choose installation directory"
+    echo ""
+    print_info "Current directory: ${BOLD}$current_dir${NC}"
+    echo ""
+    
+    if ask_yes_no "Install InstaLens in current directory ($default_location)?"; then
+        INSTALL_DIR="$default_location"
+    else
+        echo ""
+        echo -e -n "${CYAN}Enter installation path (or press Enter for $HOME/InstaLens): ${NC}"
+        read -r custom_path
+        
+        if [ -z "$custom_path" ]; then
+            INSTALL_DIR="$HOME/InstaLens"
+        else
+            # Expand ~ to home directory
+            INSTALL_DIR="${custom_path/#\~/$HOME}"
+        fi
+    fi
+    
+    print_info "Will install to: ${BOLD}$INSTALL_DIR${NC}"
+}
+
 install_dependencies() {
     print_step "Installing dependencies..."
     
@@ -206,6 +233,9 @@ install_dependencies() {
 main() {
     print_header
     
+    # Ask where to install
+    ask_install_location
+    
     # Check if already installed
     if [ -d "$INSTALL_DIR" ]; then
         print_info "InstaLens already installed at: $INSTALL_DIR"
@@ -278,11 +308,6 @@ EOF
     echo ""
     print_info "Starting InstaLens..."
     echo ""
-    print_info "Backend will run on: ${BOLD}http://localhost:8000${NC}"
-    print_info "Frontend will run on: ${BOLD}http://localhost:5173${NC}"
-    echo ""
-    print_warning "Press Ctrl+C to stop both servers"
-    echo ""
     
     # Start backend in background
     cd "$INSTALL_DIR/backend"
@@ -290,11 +315,20 @@ EOF
     python main.py > ../backend.log 2>&1 &
     BACKEND_PID=$!
     
-    sleep 2
+    sleep 5
     print_success "Backend started (PID: $BACKEND_PID)"
+    print_info "Backend running on: ${BOLD}http://localhost:8000${NC}"
+    echo ""
     
-    # Start frontend
+    # Start frontend (foreground - will show Vite output)
     cd "$INSTALL_DIR/frontend"
+    echo ""
+    print_info "Starting frontend..."
+    print_info "Frontend will run on: ${BOLD}http://localhost:5173${NC}"
+    echo ""
+    print_warning "Press Ctrl+C to stop both servers"
+    echo ""
+    
     pnpm dev
     
     # Cleanup on exit

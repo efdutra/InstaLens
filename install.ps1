@@ -7,7 +7,6 @@ $ErrorActionPreference = "Stop"
 
 # Configuration
 $RepoUrl = "https://github.com/efdutra/InstaLens.git"
-$InstallDir = "$env:USERPROFILE\InstaLens"
 $PythonMinVersion = [Version]"3.9"
 $NodeMinVersion = [Version]"18.0"
 
@@ -132,6 +131,30 @@ function Test-Pnpm {
     }
 }
 
+function Ask-InstallLocation {
+    $currentDir = Get-Location
+    $defaultLocation = Join-Path $currentDir "InstaLens"
+    
+    Write-Host ""
+    Print-Step "Choose installation directory"
+    Write-Host ""
+    Print-Info "Current directory: $currentDir"
+    Write-Host ""
+    
+    if (Ask-YesNo "Install InstaLens in current directory ($defaultLocation)?") {
+        return $defaultLocation
+    } else {
+        Write-Host ""
+        $customPath = Read-Host "Enter installation path (or press Enter for $env:USERPROFILE\InstaLens)"
+        
+        if ([string]::IsNullOrWhiteSpace($customPath)) {
+            return "$env:USERPROFILE\InstaLens"
+        } else {
+            return $customPath
+        }
+    }
+}
+
 function Install-Dependencies {
     # Check Git
     if (-not (Test-Git)) {
@@ -180,6 +203,10 @@ function Install-Dependencies {
 
 function Main {
     Print-Header
+    
+    # Ask where to install
+    $InstallDir = Ask-InstallLocation
+    Print-Info "Will install to: $InstallDir"
     
     # Check if already installed
     if (Test-Path $InstallDir) {
@@ -254,13 +281,6 @@ CORS_ORIGINS=*
     Write-Host ""
     Print-Info "Starting InstaLens..."
     Write-Host ""
-    Print-Info "Backend will run on: " -NoNewline
-    Write-Host "http://localhost:8000" -ForegroundColor White -BackgroundColor DarkBlue
-    Print-Info "Frontend will run on: " -NoNewline
-    Write-Host "http://localhost:5173" -ForegroundColor White -BackgroundColor DarkBlue
-    Write-Host ""
-    Print-Warning "Press Ctrl+C to stop both servers"
-    Write-Host ""
     
     # Start backend in background
     $BackendPath = Join-Path $InstallDir "backend"
@@ -271,11 +291,22 @@ CORS_ORIGINS=*
         python main.py
     } -ArgumentList $BackendPath
     
-    Start-Sleep -Seconds 3
+    Start-Sleep -Seconds 5
     Print-Success "Backend started (Job ID: $($BackendJob.Id))"
+    Print-Info "Backend running on: " -NoNewline
+    Write-Host "http://localhost:8000" -ForegroundColor White -BackgroundColor DarkBlue
+    Write-Host ""
     
-    # Start frontend (foreground)
+    # Start frontend (foreground - will show Vite output)
     Set-Location (Join-Path $InstallDir "frontend")
+    Write-Host ""
+    Print-Info "Starting frontend..."
+    Print-Info "Frontend will run on: " -NoNewline
+    Write-Host "http://localhost:5173" -ForegroundColor White -BackgroundColor DarkBlue
+    Write-Host ""
+    Print-Warning "Press Ctrl+C to stop both servers"
+    Write-Host ""
+    
     pnpm dev
     
     # Cleanup on exit
