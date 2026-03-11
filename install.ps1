@@ -310,7 +310,7 @@ CORS_ORIGINS=*
     } -ArgumentList (Join-Path $InstallDir "frontend")
     
     # Wait for Vite to fully start and show its banner
-    Start-Sleep -Seconds 15
+    Start-Sleep -Seconds 20
     
     # Show frontend output
     Receive-Job $FrontendJob
