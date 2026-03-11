@@ -330,7 +330,7 @@ EOF
     FRONTEND_PID=$!
     
     # Wait for Vite to fully start and show its banner
-    sleep 20
+    sleep 60
     
     echo ""
     print_info "Frontend will run on: ${BOLD}http://localhost:5173${NC}"
