@@ -87,7 +87,34 @@
 
 ---
 
-## 🚀 Quick Start
+## ⚡ Quick Install (One-Liner)
+
+### Linux / macOS
+
+```bash
+curl -sSL https://raw.githubusercontent.com/efdutra/InstaLens/main/install.sh | bash
+```
+
+### Windows (PowerShell)
+
+```powershell
+iex (iwr -useb https://raw.githubusercontent.com/efdutra/InstaLens/main/install.ps1)
+```
+
+The installer will:
+- ✅ Check for dependencies (Git, Python 3.9+, Node 18+, pnpm)
+- ✅ Clone the repository to your chosen location
+- ✅ Install all backend and frontend dependencies
+- ✅ Launch both servers automatically
+- ✅ Display a beautiful status banner when ready
+
+**After installation completes**, access the app at `http://localhost:5173`
+
+**Manual Installation:** If you prefer step-by-step setup, see below ⬇️
+
+---
+
+## 🚀 Manual Setup
 
 ### Prerequisites
 
