@@ -1,6 +1,6 @@
-# 📸 IG Followers Scraper
+# 📸 InstaLens
 
-Complete system for extracting Instagram profile data with followers/following information and gender classification.
+**Instagram Followers Scraper** - Complete system for extracting Instagram profile data with followers/following information and gender classification.
 
 ---
 
@@ -162,7 +162,7 @@ data: {"profile": {...}, "followers": [...], "following": [...]}
 ## 📂 Project Structure
 
 ```
-IGC/
+InstaLens/
 ├── backend/
 │   ├── main.py              # FastAPI routes
 │   ├── scraper.py           # Playwright scraper + gender classification
