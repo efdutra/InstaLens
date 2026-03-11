@@ -45,6 +45,21 @@ print_header() {
     echo -e "${NC}"
 }
 
+print_header_running() {
+    clear
+    echo -e "${CYAN}${BOLD}"
+    echo "╔════════════════════════════════════════╗"
+    echo "║                                        ║"
+    echo "║   📸 InstaLens Installer               ║"
+    echo "║   Instagram Followers Scraper          ║"
+    echo "║                                        ║"
+    echo "╚════════════════════════════════════════╝"
+    echo -e "${NC}"
+    echo ""
+    print_success "${ROCKET} InstaLens running!"
+    echo ""
+}
+
 print_step() {
     echo -e "\n${BLUE}${BOLD}▶ $1${NC}"
 }
@@ -317,19 +332,34 @@ EOF
     
     sleep 5
     
-    # Start frontend in background (will show Vite output)
+    # Start frontend and monitor for Vite ready message
     cd "$INSTALL_DIR/frontend"
     print_info "Starting frontend..."
     echo ""
     
-    pnpm dev &
+    # Create temp log file
+    VITE_LOG="/tmp/instalens-vite-$$.log"
+    touch "$VITE_LOG"
+    
+    # Start pnpm dev redirecting to log
+    pnpm dev > "$VITE_LOG" 2>&1 &
     FRONTEND_PID=$!
     
-    # Wait for Vite to fully start and show its banner
-    sleep 60
+    # Show Vite output in real-time
+    tail -f "$VITE_LOG" &
+    TAIL_PID=$!
     
-    # Now show all information together
-    echo ""
+    # Monitor log for "ready in" message
+    while ! grep -q "ready in" "$VITE_LOG" 2>/dev/null; do
+        sleep 0.5
+    done
+    
+    # Kill tail and clean screen
+    kill $TAIL_PID 2>/dev/null
+    wait $TAIL_PID 2>/dev/null
+    
+    # Show final status
+    print_header_running
     print_success "Backend started (PID: $BACKEND_PID)"
     print_info "Backend running on: ${BOLD}http://localhost:8000${NC}"
     print_success "Frontend started (PID: $FRONTEND_PID)"
@@ -343,6 +373,7 @@ EOF
     
     # Cleanup on exit
     kill $BACKEND_PID 2>/dev/null
+    rm -f "$VITE_LOG"
 }
 
 # ==============================================

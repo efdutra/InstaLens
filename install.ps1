@@ -25,6 +25,20 @@ function Print-Header {
     Write-Host ""
 }
 
+function Print-Header-Running {
+    Clear-Host
+    Write-Host ""
+    Write-Host "╔════════════════════════════════════════╗" -ForegroundColor Cyan
+    Write-Host "║                                        ║" -ForegroundColor Cyan
+    Write-Host "║   📸 InstaLens Installer               ║" -ForegroundColor Cyan
+    Write-Host "║   Instagram Followers Scraper          ║" -ForegroundColor Cyan
+    Write-Host "║                                        ║" -ForegroundColor Cyan
+    Write-Host "╚════════════════════════════════════════╝" -ForegroundColor Cyan
+    Write-Host ""
+    Print-Success "🚀 InstaLens running!"
+    Write-Host ""
+}
+
 function Print-Step {
     param([string]$Message)
     Write-Host ""
@@ -293,37 +307,57 @@ CORS_ORIGINS=*
     
     Start-Sleep -Seconds 5
     
-    # Start frontend in background (will show Vite output)
+    # Start frontend and monitor for Vite ready message
     Set-Location (Join-Path $InstallDir "frontend")
     Print-Info "Starting frontend..."
     Write-Host ""
     
-    $FrontendJob = Start-Job -ScriptBlock {
-        param($Path)
-        Set-Location $Path
-        pnpm dev
-    } -ArgumentList (Join-Path $InstallDir "frontend")
+    # Create temp log file
+    $ViteLog = Join-Path $env:TEMP "instalens-vite-$PID.log"
+    New-Item -Path $ViteLog -ItemType File -Force | Out-Null
     
-    # Wait for Vite to fully start and show its banner
-    Start-Sleep -Seconds 20
+    # Start pnpm dev redirecting to log
+    $FrontendProcess = Start-Process -FilePath "pnpm" -ArgumentList "dev" -NoNewWindow -PassThru -RedirectStandardOutput $ViteLog -RedirectStandardError $ViteLog
+    $FRONTEND_PID = $FrontendProcess.Id
     
-    # Show frontend output
-    Receive-Job $FrontendJob
+    # Show Vite output in real-time and monitor for ready message
+    $TailJob = Start-Job -ScriptBlock {
+        param($LogPath)
+        Get-Content -Path $LogPath -Wait
+    } -ArgumentList $ViteLog
     
-    # Now show all information together
-    Write-Host ""
+    # Monitor for "ready in" in the log
+    while ($true) {
+        Start-Sleep -Milliseconds 500
+        $content = Get-Content -Path $ViteLog -Raw -ErrorAction SilentlyContinue
+        if ($content -match "ready in") {
+            break
+        }
+    }
+    
+    # Stop showing output and clean screen
+    Stop-Job $TailJob -ErrorAction SilentlyContinue
+    Remove-Job $TailJob -ErrorAction SilentlyContinue
+    
+    # Show final status
+    Print-Header-Running
     Print-Success "Backend started (Job ID: $($BackendJob.Id))"
     Print-Info "Backend running on: " -NoNewline
     Write-Host "http://localhost:8000" -ForegroundColor White -BackgroundColor DarkBlue
-    Print-Success "Frontend started (Job ID: $($FrontendJob.Id))"
+    Print-Success "Frontend started (PID: $FRONTEND_PID)"
     Print-Info "Frontend running on: " -NoNewline
     Write-Host "http://localhost:5173" -ForegroundColor White -BackgroundColor DarkBlue
     Write-Host ""
     Print-Warning "Press Ctrl+C to stop both servers"
     Write-Host ""
     
-    # Wait for frontend
-    Wait-Job $FrontendJob | Out-Null
+    # Wait for frontend process
+    $FrontendProcess.WaitForExit()
+    
+    # Cleanup on exit
+    Stop-Job $BackendJob -ErrorAction SilentlyContinue
+    Remove-Job $BackendJob -ErrorAction SilentlyContinue
+    Remove-Item $ViteLog -ErrorAction SilentlyContinue
     
     # Cleanup on exit
     Stop-Job $BackendJob -ErrorAction SilentlyContinue
