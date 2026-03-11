@@ -51,6 +51,21 @@ Complete system for extracting Instagram profile data with followers/following i
 
 ---
 
+## 📋 ToDo
+
+- [ ] **Docker deployment:** Add Dockerfile and docker-compose.yml for easy deployment
+- [ ] **Fix auto-scrolling limitation:** Currently stops around 800 followers/following (retries 5 times). Need to investigate Instagram's rate limiting and implement better handling.
+- [ ] **Mutual followers analysis:** Show who follows back, who doesn't follow back, mutual connections
+- [ ] **Profile comparison:** Compare two profiles side-by-side (mutual followers, unique followers)
+- [ ] **Scraping history:** Save past searches with timestamps to track follower growth over time
+- [ ] **Excel export:** Add .xlsx format alongside CSV/JSON
+- [ ] **Charts & visualizations:** Gender distribution pie chart, follower growth timeline
+- [ ] **Light/Dark theme toggle:** Currently only dark theme available
+- [ ] **Virtual scroll/pagination:** Better performance for lists with 1000+ users
+- [ ] **Batch scraping:** Queue multiple usernames for sequential processing
+
+---
+
 ## 🛠️ Tech Stack
 
 **Backend:**
