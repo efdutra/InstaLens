@@ -16,6 +16,9 @@ session.json
 *.session
 cookies.json
 
+# Downloaded images
+images/
+
 # Output files
 *_data.json
 
