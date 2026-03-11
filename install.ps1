@@ -297,21 +297,39 @@ CORS_ORIGINS=*
     Write-Host "http://localhost:8000" -ForegroundColor White -BackgroundColor DarkBlue
     Write-Host ""
     
-    # Start frontend (foreground - will show Vite output)
+    # Start frontend in background (will show Vite output)
     Set-Location (Join-Path $InstallDir "frontend")
     Write-Host ""
     Print-Info "Starting frontend..."
+    Write-Host ""
+    
+    $FrontendJob = Start-Job -ScriptBlock {
+        param($Path)
+        Set-Location $Path
+        pnpm dev
+    } -ArgumentList (Join-Path $InstallDir "frontend")
+    
+    # Wait for Vite to fully start and show its banner
+    Start-Sleep -Seconds 15
+    
+    # Show frontend output
+    Receive-Job $FrontendJob
+    
+    Write-Host ""
     Print-Info "Frontend will run on: " -NoNewline
     Write-Host "http://localhost:5173" -ForegroundColor White -BackgroundColor DarkBlue
     Write-Host ""
     Print-Warning "Press Ctrl+C to stop both servers"
     Write-Host ""
     
-    pnpm dev
+    # Wait for frontend
+    Wait-Job $FrontendJob | Out-Null
     
     # Cleanup on exit
     Stop-Job $BackendJob -ErrorAction SilentlyContinue
     Remove-Job $BackendJob -ErrorAction SilentlyContinue
+    Stop-Job $FrontendJob -ErrorAction SilentlyContinue
+    Remove-Job $FrontendJob -ErrorAction SilentlyContinue
 }
 
 # ==============================================

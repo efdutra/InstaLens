@@ -320,16 +320,26 @@ EOF
     print_info "Backend running on: ${BOLD}http://localhost:8000${NC}"
     echo ""
     
-    # Start frontend (foreground - will show Vite output)
+    # Start frontend in background (will show Vite output)
     cd "$INSTALL_DIR/frontend"
     echo ""
     print_info "Starting frontend..."
+    echo ""
+    
+    pnpm dev &
+    FRONTEND_PID=$!
+    
+    # Wait for Vite to fully start and show its banner
+    sleep 15
+    
+    echo ""
     print_info "Frontend will run on: ${BOLD}http://localhost:5173${NC}"
     echo ""
     print_warning "Press Ctrl+C to stop both servers"
     echo ""
     
-    pnpm dev
+    # Wait for frontend (bring to foreground)
+    wait $FRONTEND_PID
     
     # Cleanup on exit
     kill $BACKEND_PID 2>/dev/null
