@@ -282,7 +282,7 @@ CORS_ORIGINS=*
     Print-Info "Starting InstaLens..."
     Write-Host ""
     
-    # Start backend in background
+    # Start backend in background (silently)
     $BackendPath = Join-Path $InstallDir "backend"
     $BackendJob = Start-Job -ScriptBlock {
         param($Path)
@@ -292,14 +292,9 @@ CORS_ORIGINS=*
     } -ArgumentList $BackendPath
     
     Start-Sleep -Seconds 5
-    Print-Success "Backend started (Job ID: $($BackendJob.Id))"
-    Print-Info "Backend running on: " -NoNewline
-    Write-Host "http://localhost:8000" -ForegroundColor White -BackgroundColor DarkBlue
-    Write-Host ""
     
     # Start frontend in background (will show Vite output)
     Set-Location (Join-Path $InstallDir "frontend")
-    Write-Host ""
     Print-Info "Starting frontend..."
     Write-Host ""
     
@@ -315,8 +310,13 @@ CORS_ORIGINS=*
     # Show frontend output
     Receive-Job $FrontendJob
     
+    # Now show all information together
     Write-Host ""
-    Print-Info "Frontend will run on: " -NoNewline
+    Print-Success "Backend started (Job ID: $($BackendJob.Id))"
+    Print-Info "Backend running on: " -NoNewline
+    Write-Host "http://localhost:8000" -ForegroundColor White -BackgroundColor DarkBlue
+    Print-Success "Frontend started (Job ID: $($FrontendJob.Id))"
+    Print-Info "Frontend running on: " -NoNewline
     Write-Host "http://localhost:5173" -ForegroundColor White -BackgroundColor DarkBlue
     Write-Host ""
     Print-Warning "Press Ctrl+C to stop both servers"

@@ -309,20 +309,16 @@ EOF
     print_info "Starting InstaLens..."
     echo ""
     
-    # Start backend in background
+    # Start backend in background (silently)
     cd "$INSTALL_DIR/backend"
     source venv/bin/activate
     python main.py > ../backend.log 2>&1 &
     BACKEND_PID=$!
     
     sleep 5
-    print_success "Backend started (PID: $BACKEND_PID)"
-    print_info "Backend running on: ${BOLD}http://localhost:8000${NC}"
-    echo ""
     
     # Start frontend in background (will show Vite output)
     cd "$INSTALL_DIR/frontend"
-    echo ""
     print_info "Starting frontend..."
     echo ""
     
@@ -330,10 +326,14 @@ EOF
     FRONTEND_PID=$!
     
     # Wait for Vite to fully start and show its banner
-    sleep 61
+    sleep 20
     
+    # Now show all information together
     echo ""
-    print_info "Frontend will run on: ${BOLD}http://localhost:5173${NC}"
+    print_success "Backend started (PID: $BACKEND_PID)"
+    print_info "Backend running on: ${BOLD}http://localhost:8000${NC}"
+    print_success "Frontend started (PID: $FRONTEND_PID)"
+    print_info "Frontend running on: ${BOLD}http://localhost:5173${NC}"
     echo ""
     print_warning "Press Ctrl+C to stop both servers"
     echo ""
