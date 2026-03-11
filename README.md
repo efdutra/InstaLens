@@ -2,6 +2,8 @@
 
 **Instagram Followers Scraper** - Complete system for extracting Instagram profile data with followers/following information and gender classification.
 
+> **Self-Hosted Tool:** This is a local application. Clone the repository and run it on your own machine. Each user manages their own Instagram session privately.
+
 ---
 
 ## ⚠️ AUTHENTICATION REQUIREMENTS
@@ -9,7 +11,7 @@
 ### **IMPORTANT:** Login is MANDATORY
 
 - You **MUST** log in with a **real Instagram account**
-- The browser opens for manual authentication
+- The browser opens **on the machine where the backend is running** for manual authentication
 - Session is saved locally in `session.json` for reuse
 
 ### Private vs Public Accounts
@@ -26,10 +28,11 @@
 
 ### How It Works
 
-1. **First time:** Browser opens in **visible mode** for manual login
+1. **First time:** Browser opens in **visible mode** on the backend machine for manual login
 2. **After login:** Session saved → browser closes
 3. **Future scrapes:** Browser runs in **headless mode** (background)
-4. **If session expires:** Login again through the interface
+4. **Network access:** Once logged in, you can access the web interface from any device on your network
+5. **If session expires:** Login again (browser will open on the backend machine)
 
 ---
 
