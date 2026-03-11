@@ -18,7 +18,7 @@ function Print-Header {
     Write-Host ""
     Write-Host "╔════════════════════════════════════════╗" -ForegroundColor Cyan
     Write-Host "║                                        ║" -ForegroundColor Cyan
-    Write-Host "║   📸 InstaLens Installer               ║" -ForegroundColor Cyan
+    Write-Host "║   📸 InstaLens Installer V1            ║" -ForegroundColor Cyan
     Write-Host "║   Instagram Followers Scraper          ║" -ForegroundColor Cyan
     Write-Host "║                                        ║" -ForegroundColor Cyan
     Write-Host "╚════════════════════════════════════════╝" -ForegroundColor Cyan

@@ -38,7 +38,7 @@ print_header() {
     echo -e "${CYAN}${BOLD}"
     echo "╔════════════════════════════════════════╗"
     echo "║                                        ║"
-    echo "║   📸 InstaLens Installer               ║"
+    echo "║   📸 InstaLens Installer V1            ║"
     echo "║   Instagram Followers Scraper          ║"
     echo "║                                        ║"
     echo "╚════════════════════════════════════════╝"
