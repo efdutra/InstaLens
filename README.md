@@ -1,4 +1,4 @@
-# 📸 Instagram Followers Scraper
+# 📸 IG Followers Scraper
 
 Complete system for extracting Instagram profile data with followers/following information and gender classification.
 
@@ -15,10 +15,12 @@ Complete system for extracting Instagram profile data with followers/following i
 ### Private vs Public Accounts
 
 **🔒 Private Accounts:**
+
 - You **MUST follow the target account** before scraping
 - Without following, Instagram blocks access to followers/following data
 
 **🌐 Public Accounts:**
+
 - No need to follow the target account
 - You can scrape directly
 
@@ -52,14 +54,17 @@ Complete system for extracting Instagram profile data with followers/following i
 ## 🛠️ Tech Stack
 
 **Backend:**
+
 - Python 3.13+ | FastAPI | Playwright (Chromium automation)
 - httpx (async HTTP) | Pydantic (validation)
 
 **Frontend:**
+
 - Vue.js 3 (Composition API) | TypeScript
 - Pinia (state management) | Vite (build tool)
 
 **Data:**
+
 - IBGE Names API (134,315 Brazilian names for gender classification)
 
 ---
@@ -108,15 +113,15 @@ Frontend runs on `http://localhost:5173`
 
 ## 📡 API Overview
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/` | Health check |
-| GET | `/auth/status` | Check if logged in |
-| POST | `/auth/wait-login` | Open browser for manual login |
-| GET | `/scrape-stream` | Extract data with real-time SSE progress |
-| POST | `/scrape` | Legacy JSON endpoint |
-| POST | `/clear-images` | Delete cached images |
-| GET | `/images/{filename}` | Serve downloaded images |
+| Method | Endpoint             | Description                              |
+| ------ | -------------------- | ---------------------------------------- |
+| GET    | `/`                  | Health check                             |
+| GET    | `/auth/status`       | Check if logged in                       |
+| POST   | `/auth/wait-login`   | Open browser for manual login            |
+| GET    | `/scrape-stream`     | Extract data with real-time SSE progress |
+| POST   | `/scrape`            | Legacy JSON endpoint                     |
+| POST   | `/clear-images`      | Delete cached images                     |
+| GET    | `/images/{filename}` | Serve downloaded images                  |
 
 ### Example: Scraping with SSE
 
@@ -125,6 +130,7 @@ curl -N "http://localhost:8000/scrape-stream?username=instagram&max_followers=50
 ```
 
 Real-time events:
+
 ```
 event: message
 data: "Clearing old images..."
@@ -179,6 +185,7 @@ IGC/
 ## 🚨 Troubleshooting
 
 **"Session expired" error:**
+
 ```bash
 cd backend
 rm session.json
@@ -186,16 +193,19 @@ rm session.json
 ```
 
 **"playwright install" error:**
+
 ```bash
 cd backend
 python -m playwright install chromium
 ```
 
 **Images not loading:**
+
 - Check if backend is running on port 8000
 - Verify CORS settings in `main.py`
 
 **Scraping stuck on "Extracting...":**
+
 - Instagram may have changed page structure
 - Check backend terminal for error messages
 - Try logging in again
@@ -204,7 +214,7 @@ python -m playwright install chromium
 
 ## 🎓 Educational Purpose
 
-This project is intended **for educational purposes only**. 
+This project is intended **for educational purposes only**.
 
 - Demonstrates web scraping, browser automation, real-time data streaming, and modern web development practices
 - Always respect Instagram's Terms of Service
